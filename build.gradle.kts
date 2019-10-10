@@ -6,6 +6,7 @@ plugins {
     `kotlin-dsl`
     `maven-publish`
     kotlin("jvm") version "1.3.41"
+    id("com.gradle.plugin-publish") version "0.10.1"
 }
 
 group = "com.specificlanguages"
@@ -40,9 +41,17 @@ compileTestKotlin.kotlinOptions {
 
 gradlePlugin {
     plugins {
-        register("mps") {
-            id = "mps"
+        register("mpsPlugin") {
+            id = "com.specificlanguages.mps"
             implementationClass = "com.specificlanguages.MpsPlugin"
+            displayName = "MPS Build Plugin"
+            description = "A simple plugin for building JetBrains MPS projects"
         }
     }
+}
+
+pluginBundle {
+    website = "https://specificlanguages.com"
+    vcsUrl = "https://github.com/specificlanguages/mps-gradle-plugin"
+    tags = listOf("jetbrainsMps")
 }
