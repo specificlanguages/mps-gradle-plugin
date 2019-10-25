@@ -1,15 +1,17 @@
-# mps-gradle-plugin
+# MPS Gradle Plugin
 
 A Gradle plugin to package and publish MPS plugins. Use it if you have developed a language in MPS and you want to make
 it easy for other developers to use your language in their projects.
 
 Publishing MPS-based IDEs (rich client platforms) is out of scope for this plugin.
 
+This plugin also does not cover publishing to the JetBrains Plugins Repository.
+
 ## Compatibility
 
 This plugin was tested with Gradle 5.6.2 and MPS 2019.1.5.
 
-## Conventions And Assumptions
+## Conventions and Assumptions
 
 To simplify the configuration the plugin makes certain assumptions and therefore your project must follow certain
 conventions.
@@ -89,7 +91,7 @@ All code snippets below use Kotlin syntax for Gradle.
    }
    ```
 
-## Effects Of Applying The Plugin
+## Effects of Applying the Plugin
 
 The plugin applies the [Gradle Base plugin](https://docs.gradle.org/current/userguide/base_plugin.html) which creates
 a set of _lifecycle tasks_ such as `clean`, `assemble`, `check`, or `build`.
