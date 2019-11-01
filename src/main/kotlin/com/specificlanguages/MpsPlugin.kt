@@ -50,7 +50,7 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
                 into("build/dependencies")
 
                 group = "build setup"
-                description = "Download dependencies into ${destinationDir}"
+                description = "Download dependencies into ${destinationDir.relativeToOrSelf(projectDir)}"
             }
 
             val distLocation = File(buildDir, "mps")
