@@ -63,9 +63,9 @@ All code snippets below use Kotlin syntax for Gradle.
 3. Use the `mps` configuration to specify the MPS version to use:
 
    ```kotlin
-    dependencies {
-        "mps"("com.jetbrains:mps:2019.1.5")
-    }
+   dependencies {
+       "mps"("com.jetbrains:mps:2019.1.5")
+   }
    ```
 
 4. Include the dependencies necessary for generation into the `generation` configuration:
