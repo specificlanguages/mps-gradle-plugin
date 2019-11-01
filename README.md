@@ -24,11 +24,18 @@ The following assumptions will hold if you let the MPS wizard generate your buil
 
 The following conventions are different from the defaults and require manual adjustment of the generated build script:
 * The default layout should also include the build solution.
-* Instead of creating a .zip of all modules the default layout should just collect them in the top-level folder:
+* Instead of creating a .zip of all modules or plugins the default layout should just collect them in the top-level
+  folder:
   ```
   default layout:
     module com.mbeddr.mpsutil.common 
     module com.mbeddr.mpsutil.common.build
+  ```
+  or
+  ```
+  default layout:
+    plugin com.mbeddr.mpsutil.common [auto packaging]
+      <empty>
   ```
 * Any dependencies will be put under `build/dependencies` folder and can be referenced from the project's base directory
   (without using any path variables).
@@ -49,16 +56,18 @@ All code snippets below use Kotlin syntax for Gradle.
     }
     ```
 
-2. Add the itemis mbeddr repository to the project:
+2. Add the itemis mbeddr repository and the JCenter or Maven Central repository to the project:
 
    ```kotlin
    repositories {
        maven(url = "https://projects.itemis.de/nexus/content/repositories/mbeddr")
+       mavenCentral() // or jcenter()
    }
    ```
    
-   This repository is used to download MPS as well as a small runner program to launch MPS from the command line.
-   (The launcher is part of [mbeddr mps-gradle-plugin](https://github.com/mbeddr/mps-gradle-plugin).)
+   The itemis mbeddr repository is used to download MPS as well as a small runner program to launch MPS from the command
+   line. (The launcher is part of [mbeddr mps-gradle-plugin](https://github.com/mbeddr/mps-gradle-plugin).) Maven
+   Central and JCenter repositories contain the Kotlin libraries that the launcher depends on.
 
 3. Use the `mps` configuration to specify the MPS version to use:
 
@@ -76,15 +85,15 @@ All code snippets below use Kotlin syntax for Gradle.
     }
     ```
 
-5. When publishing use `from(components["mps"])`:
+5. For publishing use `from(components["mps"])`:
 
    ```kotlin
-   configure<PublishingExtension> {
+   publishing {
        publications {
            register<MavenPublication>("mpsPlugin") {
                from(components["mps"])
    
-               // add the following line to put resolved versions of dependencies into POM files.
+               // Put resolved versions of dependencies into POM files
                versionMapping { usage("default") { fromResolutionOf("generation") } }
            }
        }
