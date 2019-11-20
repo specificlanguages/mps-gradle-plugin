@@ -18,7 +18,7 @@ conventions.
 
 The following assumptions will hold if you let the MPS wizard generate your build solution and script:
 * The MPS project directory is assumed to coincide with the Gradle project directory.
-* The MPS project must contain a build model that is either named `build.mps` or matches `*.build.mps`.
+* The MPS project must contain a build model that is either named `build.mps` or matches `*.build.mps`. The build model must use default persistence and not file per root persistence. 
 * The build model must generate a `build.xml` file in the project's root directory.
 * The variable that specifies the location of MPS in the build script is called `mps_home`.
 
