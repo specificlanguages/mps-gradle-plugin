@@ -12,7 +12,10 @@ import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.get
+import org.gradle.kotlin.dsl.support.zipTo
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.zip.ZipInputStream
 import javax.inject.Inject
 
 private fun findBuildModel(project: Project): File? =
@@ -54,10 +57,12 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
             }
 
             val distLocation = File(buildDir, "mps")
+            val distResolveTask = registerMpsResolveTask(mpsConfiguration, distLocation)
+
             val buildModel = findBuildModel(this)
 
             val generateBuildscriptTask = project.maybeRegisterGenerateBuildscriptTask(
-                    mpsConfiguration, buildModel, distLocation, setupTask)
+                    mpsConfiguration, buildModel, distLocation, distResolveTask, setupTask)
 
             val antConfig = configurations.detachedConfiguration(
                     dependencies.create("org.apache.ant:ant-junit:1.10.1"))
@@ -65,7 +70,7 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
             val artifactsDir = File(project.projectDir, "build/artifacts")
 
             val assembleMps = tasks.register("assembleMps", RunAntScript::class.java) {
-                dependsOn(generateBuildscriptTask ?: setupTask)
+                dependsOn(distResolveTask, generateBuildscriptTask ?: setupTask)
                 group = "build"
                 description = "Assemble the MPS project"
                 script = "build.xml"
@@ -109,10 +114,19 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
         }
     }
 
+    private fun Project.registerMpsResolveTask(mpsConfiguration: Configuration,
+                                               distLocation: File): TaskProvider<Sync> {
+        return tasks.register("resolveMpsForGeneration", Sync::class.java) {
+            from({ mpsConfiguration.resolve().map(::zipTree) })
+            into(distLocation)
+        }
+    }
+
     private fun Project.maybeRegisterGenerateBuildscriptTask(
             mpsConfiguration: Configuration,
             buildModel: File?,
             distLocation: File,
+            distResolveTask: TaskProvider<Sync>,
             setupTask: Any): TaskProvider<JavaExec>? {
         if (buildModel == null) {
             return null
@@ -121,11 +135,6 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
         logger.info("Using build model {}", buildModel)
         val buildModelName = readModelName(buildModel) ?: throw GradleException(
                 "Could not retrieve build model name from model $buildModel")
-
-        val distResolveTask = tasks.register("resolveMpsForGeneration", Sync::class.java) {
-            from({ mpsConfiguration.resolve().map(::zipTree) })
-            into(distLocation)
-        }
 
         return tasks.register("generateBuildscript", JavaExec::class.java) {
             dependsOn(distResolveTask, setupTask)
@@ -137,29 +146,34 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
             classpath(fileTree(File(distLocation, "lib")).include("**/*.jar"))
             classpath(fileTree(File(distLocation, "plugins")).include("**/lib/**/*.jar"))
 
-            classpath({ createExecuteGeneratorConfiguration(mpsConfiguration) })
+            val mpsVersion = getMpsVersion(mpsConfiguration)
+            classpath({ configurations.detachedConfiguration(createExecuteGeneratorDependency(mpsVersion)) })
+
             main = "de.itemis.mps.gradle.generate.MainKt"
 
             inputs.file(buildModel)
             outputs.file("build.xml")
+
+            // Needed to avoid "URI is not hierarchical" exceptions
+            environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
         }
     }
 
-    private fun Project.createExecuteGeneratorConfiguration(mpsConfiguration: Configuration): Configuration {
+    private fun getMpsVersion(mpsConfiguration: Configuration): String {
         val dependencies = mpsConfiguration.dependencies
-        if (dependencies.size == 1) {
-            return createExecuteGeneratorConfiguration(dependencies.first())
-        } else {
-            throw GradleException("Expected configuration '${mpsConfiguration.name}' to contain exactly one dependency," +
-                    " the MPS to use. But found ${mpsConfiguration.dependencies.size} dependencies.")
+        if (dependencies.size != 1) {
+            throw GradleException("Expected configuration '${mpsConfiguration.name}' to contain exactly one" +
+                    " dependency, the MPS to use. But found ${mpsConfiguration.dependencies.size} dependencies.")
         }
+
+        return dependencies.first().version
+                ?: throw GradleException("Expected configuration '${mpsConfiguration.name}' to contain exactly one" +
+                        " dependency with a version. But the dependency has no version specified.")
+
     }
 
-    private fun Project.createExecuteGeneratorConfiguration(mpsDependency: Dependency) =
-            configurations.detachedConfiguration(createExecuteGeneratorDependency(mpsDependency))
-
-    private fun Project.createExecuteGeneratorDependency(mpsDependency: Dependency): Dependency {
-        val dep = dependencies.create("de.itemis.mps:execute-generators:${mpsDependency.version}.+")
+    private fun Project.createExecuteGeneratorDependency(mpsVersion: String): Dependency {
+        val dep = dependencies.create("de.itemis.mps:execute-generators:${mpsVersion}.+")
         return dep
     }
 }
