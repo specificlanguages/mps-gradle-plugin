@@ -85,9 +85,14 @@ All code snippets below use Kotlin syntax for Gradle.
     }
     ```
 
-5. For publishing use `from(components["mps"])`:
+5. For publishing apply the `maven-publish` plugin and use `from(components["mps"])`:
 
    ```kotlin
+   plugins {
+       ...
+       `maven-publish`
+   }
+   ...
    publishing {
        publications {
            register<MavenPublication>("mpsPlugin") {
