@@ -9,7 +9,9 @@ This plugin also does not cover publishing to the JetBrains Plugins Repository.
 
 ## Compatibility
 
-This plugin was tested with Gradle 5.6.2 and MPS 2019.1.5.
+This plugin has been tested with the following combinations of Gradle and MPS:
+* Gradle 5.6.2 and MPS 2019.1.5 (version 0.0.2),
+* Gradle 6.1.1 and MPS 2019.2.4 (version 1.0.0).
 
 ## Conventions and Assumptions
 
@@ -18,7 +20,8 @@ conventions.
 
 The following assumptions will hold if you let the MPS wizard generate your build solution and script:
 * The MPS project directory is assumed to coincide with the Gradle project directory.
-* The MPS project must contain a build model that is either named `build.mps` or matches `*.build.mps`. The build model must use default persistence and not file per root persistence. 
+* The MPS project must contain a build model that is either named `build.mps` or matches `*.build.mps`. The build model
+  must use default persistence and not file-per-root persistence. 
 * The build model must generate a `build.xml` file in the project's root directory.
 * The variable that specifies the location of MPS in the build script is called `mps_home`.
 
@@ -52,7 +55,7 @@ All code snippets below use Kotlin syntax for Gradle.
 
     ```kotlin
     plugins {
-        id("com.specificlanguages.mps") version "0.0.2"
+        id("com.specificlanguages.mps") version "1.0.1"
     }
     ```
 
@@ -125,3 +128,7 @@ The plugin creates the following tasks:
 
 The plugin creates a software component named `mps` to represent the published code and adds the `default` configuration
 to it.
+
+The plugin modifies the `clean` task to delete MPS-generated directories: `source_gen`, `source_gen.caches`,
+`classes_gen`, `tests_gen`, and `tests_gen.caches`. This is in addition to the default operation of `clean` task which
+deletes the project's build directory (`build`).

@@ -7,15 +7,13 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.plugins.BasePlugin
+import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.get
-import org.gradle.kotlin.dsl.support.zipTo
-import java.io.ByteArrayOutputStream
 import java.io.File
-import java.util.zip.ZipInputStream
 import javax.inject.Inject
 
 private fun findBuildModel(project: Project): File? =
@@ -33,11 +31,40 @@ private fun readModelName(file: File): String? = file.bufferedReader(Charsets.UT
     return matchResult.groupValues[1]
 }
 
+private fun allGeneratedDirs(root : File): Sequence<File> {
+    val dirsToFind = arrayOf("source_gen", "source_gen.caches", "classes_gen", "tests_gen", "tests_gen.caches")
+    return sequence {
+        val stack = mutableListOf<File>()
+        stack.add(root)
+
+        while (stack.isNotEmpty()) {
+            val top = stack.removeAt(stack.size - 1)
+            val files = top.listFiles() ?: continue
+
+            for (file in files) {
+                if (!file.isDirectory) { continue }
+
+                if (file.name in dirsToFind) {
+                    yield(file)
+                } else {
+                    stack.add(file)
+                }
+            }
+        }
+    }
+}
+
 @Suppress("unused", "UnstableApiUsage")
 open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareComponentFactory) : Plugin<Project> {
     override fun apply(project: Project) {
         project.run {
             pluginManager.apply(BasePlugin::class.java)
+
+            // Extend clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
+            // classes_gen, tests_gen, tests_gen.caches.
+            tasks.named(BasePlugin.CLEAN_TASK_NAME, Delete::class.java) {
+                delete({ allGeneratedDirs(projectDir).asIterable() })
+            }
 
             val generationConfiguration = configurations.create("generation")
             generationConfiguration.isCanBeResolved = true
