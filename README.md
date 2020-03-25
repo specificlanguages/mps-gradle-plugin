@@ -11,7 +11,7 @@ This plugin also does not cover publishing to the JetBrains Plugins Repository.
 
 This plugin has been tested with the following combinations of Gradle and MPS:
 * Gradle 5.6.2 and MPS 2019.1.5 (version 0.0.2),
-* Gradle 6.1.1 and MPS 2019.2.4 (version 1.0.0).
+* Gradle 5.6.2 and MPS 2019.2.4 (version 1.0.0).
 
 ## Conventions and Assumptions
 
