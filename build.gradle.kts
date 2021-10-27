@@ -10,10 +10,10 @@ plugins {
 }
 
 group = "com.specificlanguages"
-version = "1.0.1"
+version = "1.1.0"
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {

@@ -1,10 +1,12 @@
 package com.specificlanguages
 
+import groovy.xml.dom.DOMCategory.attributes
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.tasks.Delete
@@ -15,6 +17,7 @@ import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.get
 import java.io.File
 import javax.inject.Inject
+
 
 private fun findBuildModel(project: Project): File? =
         project.projectDir.walkBottomUp().firstOrNull { it.name == "build.mps" || it.name.endsWith(".build.mps") }
@@ -133,6 +136,10 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
             defaultConfiguration.isCanBeConsumed = true
             defaultConfiguration.isCanBeResolved = false
 
+            // Add an attribute to keep Gradle happy ("variant must have at least one attribute")
+            defaultConfiguration.attributes.attribute(Usage.USAGE_ATTRIBUTE,
+                project.objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
+
             val mpsComponent = softwareComponentFactory.adhoc("mps")
             mpsComponent.addVariantsFromConfiguration(defaultConfiguration) {
                 mapToMavenScope("compile")
@@ -144,7 +151,7 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
     private fun Project.registerMpsResolveTask(mpsConfiguration: Configuration,
                                                distLocation: File): TaskProvider<Sync> {
         return tasks.register("resolveMpsForGeneration", Sync::class.java) {
-            from({ mpsConfiguration.resolve().map(::zipTree) })
+            from({ mpsConfiguration.map(::zipTree) })
             into(distLocation)
         }
     }
@@ -176,7 +183,7 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
             val mpsVersion = getMpsVersion(mpsConfiguration)
             classpath({ configurations.detachedConfiguration(createExecuteGeneratorDependency(mpsVersion)) })
 
-            main = "de.itemis.mps.gradle.generate.MainKt"
+            mainClass.set("de.itemis.mps.gradle.generate.MainKt")
 
             inputs.file(buildModel)
             outputs.file("build.xml")
