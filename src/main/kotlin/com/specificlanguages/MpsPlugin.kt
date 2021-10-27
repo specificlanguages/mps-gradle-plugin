@@ -105,12 +105,12 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
                 description = "Assemble the MPS project"
                 script = "build.xml"
                 targets = listOf("generate", "assemble")
-                scriptArgs = listOf("-Dmps_home=$distLocation")
+                scriptArgs = listOf("-Dmps_home=$distLocation", "-Dversion=${project.version}")
                 scriptClasspath = antConfig
                 outputs.dir(artifactsDir)
             }
 
-            val packagePluginZip = tasks.create("package", Zip::class.java) {
+            val packagePluginZip = tasks.register("package", Zip::class.java) {
                 description = "Package the built modules in a ZIP archive"
                 dependsOn(assembleMps)
                 destinationDirectory.set(File(project.buildDir, "dist"))

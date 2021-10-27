@@ -10,9 +10,10 @@ This plugin also does not cover publishing to the JetBrains Plugins Repository.
 ## Compatibility
 
 This plugin has been tested with the following combinations of Gradle and MPS:
+
 * Gradle 7.2 and MPS 2020.3.5 (version 1.1.0),
-* Gradle 5.6.2 and MPS 2019.1.5 (version 0.0.2),
-* Gradle 5.6.2 and MPS 2019.2.4 (version 1.0.0).
+* Gradle 5.6.2 and MPS 2019.2.4 (version 1.0.0),
+* Gradle 5.6.2 and MPS 2019.1.5 (version 0.0.2).
 
 ## Conventions and Assumptions
 
@@ -20,13 +21,15 @@ To simplify the configuration the plugin makes certain assumptions and therefore
 conventions.
 
 The following assumptions will hold if you let the MPS wizard generate your build solution and script:
+
 * The MPS project directory is assumed to coincide with the Gradle project directory.
 * The MPS project must contain a build model that is either named `build.mps` or matches `*.build.mps`. The build model
-  must use default persistence and not file-per-root persistence. 
+  must use default persistence and not file-per-root persistence.
 * The build model must generate a `build.xml` file in the project's root directory.
 * The variable that specifies the location of MPS in the build script is called `mps_home`.
 
 The following conventions are different from the defaults and require manual adjustment of the generated build script:
+
 * The default layout should also include the build solution.
 * Instead of creating a .zip of all modules or plugins the default layout should just collect them in the top-level
   folder:
@@ -68,7 +71,7 @@ All code snippets below use Kotlin syntax for Gradle.
        mavenCentral()
    }
    ```
-   
+
    The itemis mbeddr repository is used to download MPS as well as a small runner program to launch MPS from the command
    line. (The launcher is part of [mbeddr mps-gradle-plugin](https://github.com/mbeddr/mps-gradle-plugin).) Maven
    Central and JCenter repositories contain the Kotlin libraries that the launcher depends on.
@@ -111,8 +114,8 @@ All code snippets below use Kotlin syntax for Gradle.
 
 ## Effects of Applying the Plugin
 
-The plugin applies the [Gradle Base plugin](https://docs.gradle.org/current/userguide/base_plugin.html) which creates
-a set of _lifecycle tasks_ such as `clean`, `assemble`, `check`, or `build`.
+The plugin applies the [Gradle Base plugin](https://docs.gradle.org/current/userguide/base_plugin.html) which creates a
+set of _lifecycle tasks_ such as `clean`, `assemble`, `check`, or `build`.
 
 The plugin creates the following tasks:
 
@@ -120,8 +123,9 @@ The plugin creates the following tasks:
 * `resolveMpsForGeneration`: downloads the MPS artifact specified by the `mps` configuration and unpacks it into
   `build/mps`.
 * `generateBuildscript`: generates the build script using MPS. The build model location is detected automatically.
-* `assembleMps`: runs `generate` and `assemble` targets of the generated Ant script. The `assemble`
-  lifecycle task is set to depend on `assembleMps`.
+* `assembleMps`: runs `generate` and `assemble` targets of the generated Ant script. The `assemble` lifecycle task is
+  set to depend on `assembleMps`. The version of the project is passed to Ant via `-Dversion=${project.version}` (since
+  1.1.1).
 * `checkMps`: runs the `check` target of the generated Ant script. The `check` lifecycle task is set to depend
   on `checkMps`.
 * `package`: packages the modules built by `assembleMps` in a ZIP. The package is added to the `default` configuration
