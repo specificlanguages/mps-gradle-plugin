@@ -10,6 +10,7 @@ This plugin also does not cover publishing to the JetBrains Plugins Repository.
 ## Compatibility
 
 This plugin has been tested with the following combinations of Gradle and MPS:
+* Gradle 7.2 and MPS 2020.3.5 (version 1.1.0),
 * Gradle 5.6.2 and MPS 2019.1.5 (version 0.0.2),
 * Gradle 5.6.2 and MPS 2019.2.4 (version 1.0.0).
 
@@ -64,7 +65,7 @@ All code snippets below use Kotlin syntax for Gradle.
    ```kotlin
    repositories {
        maven(url = "https://projects.itemis.de/nexus/content/repositories/mbeddr")
-       mavenCentral() // or jcenter()
+       mavenCentral()
    }
    ```
    
@@ -102,7 +103,7 @@ All code snippets below use Kotlin syntax for Gradle.
                from(components["mps"])
    
                // Put resolved versions of dependencies into POM files
-               versionMapping { usage("default") { fromResolutionOf("generation") } }
+               versionMapping { usage("java-runtime") { fromResolutionOf("generation") } }
            }
        }
    }
