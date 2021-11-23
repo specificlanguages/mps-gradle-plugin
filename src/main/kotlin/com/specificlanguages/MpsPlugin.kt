@@ -81,9 +81,12 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
                 dependsOn(generationConfiguration)
                 from({ generationConfiguration.resolve().map { project.zipTree(it) } })
                 into("build/dependencies")
+                group = "build setup"
+                description = "Downloads generation dependencies into ${destinationDir.relativeToOrSelf(projectDir)}."
+            })
 
                 group = "build setup"
-                description = "Download dependencies into ${destinationDir.relativeToOrSelf(projectDir)}"
+                description = "Sets up the project so that it can be opened in MPS."
             }
 
             val distLocation = File(buildDir, "mps")
@@ -102,7 +105,7 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
             val assembleMps = tasks.register("assembleMps", RunAntScript::class.java) {
                 dependsOn(distResolveTask, generateBuildscriptTask ?: setupTask)
                 group = "build"
-                description = "Assemble the MPS project"
+                description = "Assembles the MPS project."
                 script = "build.xml"
                 targets = listOf("generate", "assemble")
                 scriptArgs = listOf("-Dmps_home=$distLocation", "-Dversion=${project.version}")
@@ -111,7 +114,8 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
             }
 
             val packagePluginZip = tasks.register("package", Zip::class.java) {
-                description = "Package the built modules in a ZIP archive"
+                description = "Packages the built modules in a ZIP archive."
+                group = "build"
                 dependsOn(assembleMps)
                 destinationDirectory.set(File(project.buildDir, "dist"))
                 archiveBaseName.set(project.name)
@@ -122,7 +126,7 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
             val checkMps = tasks.register("checkMps", RunAntScript::class.java) {
                 dependsOn(assembleMps)
                 group = "build"
-                description = "Run tests in the MPS project"
+                description = "Runs tests in the MPS project."
                 script = "build.xml"
                 targets = listOf("check")
                 scriptArgs = listOf("-Dmps_home=$distLocation")
@@ -153,6 +157,9 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
         return tasks.register("resolveMpsForGeneration", Sync::class.java) {
             from({ mpsConfiguration.map(::zipTree) })
             into(distLocation)
+            description = "Downloads MPS as specified by '${mpsConfiguration.name}' configuration" +
+                    " and unpacks it into ${distLocation.relativeToOrSelf(projectDir)}."
+            group = "build setup"
         }
     }
 
@@ -176,7 +183,7 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
                     "--project=${projectDir}",
                     "--model=$buildModelName")
             group = "build"
-            description = "Generate the Ant build script from " + buildModel.relativeTo(projectDir)
+            description = "Generate the Ant build script from ${buildModel.relativeToOrSelf(projectDir)}."
             classpath(fileTree(File(distLocation, "lib")).include("**/*.jar"))
             classpath(fileTree(File(distLocation, "plugins")).include("**/lib/**/*.jar"))
 
