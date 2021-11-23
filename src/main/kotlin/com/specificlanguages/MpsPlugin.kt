@@ -1,20 +1,22 @@
 package com.specificlanguages
 
-import groovy.xml.dom.DOMCategory.attributes
-import org.gradle.api.GradleException
-import org.gradle.api.Plugin
-import org.gradle.api.Project
+import groovy.lang.Closure
+import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.BasePlugin
-import org.gradle.api.tasks.Delete
-import org.gradle.api.tasks.JavaExec
-import org.gradle.api.tasks.Sync
-import org.gradle.api.tasks.TaskProvider
+import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.*
 import org.gradle.api.tasks.bundling.Zip
+import org.gradle.kotlin.dsl.closureOf
 import org.gradle.kotlin.dsl.get
+import org.gradle.kotlin.dsl.listProperty
+import org.gradle.kotlin.dsl.typeOf
 import java.io.File
 import javax.inject.Inject
 
@@ -57,11 +59,74 @@ private fun allGeneratedDirs(root : File): Sequence<File> {
     }
 }
 
-@Suppress("unused", "UnstableApiUsage")
-open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareComponentFactory) : Plugin<Project> {
+abstract class StubConfiguration(private val project: Project, private val name: String) : Named {
+    override fun getName(): String = name
+
+    @get:OutputDirectory
+    abstract val destinationDir: DirectoryProperty
+
+    @get:Input
+    val configuration: NamedDomainObjectProvider<Configuration> = project.configurations.register(name) { isCanBeConsumed = false }
+
+    fun destinationDir(path: Any) {
+        destinationDir.set(project.file(path))
+    }
+
+    fun dependency(notation: Any): Dependency? {
+        return project.dependencies.add(configuration.name, notation)
+    }
+
+    fun dependency(notation: Any, config: Closure<*>): Dependency {
+        return project.dependencies.add(configuration.name, notation, config)
+    }
+
+    fun dependency(notation: Any, config: (ExternalModuleDependency).() -> Unit): ExternalModuleDependency =
+        dependency(notation, closureOf(config)) as ExternalModuleDependency
+
+}
+
+fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Transformer<String, String> {
+    return Transformer { filename ->
+        val ra = config.get().resolvedConfiguration.resolvedArtifacts.find { ra -> ra.file.name == filename }!!
+        if (ra.classifier != null) {
+            "${ra.name}-${ra.classifier}.${ra.extension}"
+        } else {
+            "${ra.name}.${ra.extension}"
+        }
+    }
+}
+
+fun capitalize(s: String): String = s[0].toUpperCase() + s.substring(1)
+
+@Suppress("unused")
+open class MpsPlugin @Inject constructor(
+    val objectFactory: ObjectFactory,
+    val softwareComponentFactory: SoftwareComponentFactory
+) : Plugin<Project> {
+
     override fun apply(project: Project) {
         project.run {
             pluginManager.apply(BasePlugin::class.java)
+
+            val stubs = objectFactory.domainObjectContainer(StubConfiguration::class.java)
+            extensions.add(typeOf<NamedDomainObjectContainer<StubConfiguration>>(), "stubs", stubs)
+
+            val syncTasks = objects.listProperty<TaskProvider<Sync>>()
+
+            stubs.all {
+                val stub = this
+                val config = stub.configuration
+                val task = tasks.register("resolve" + capitalize(stub.name), Sync::class.java) {
+                    description = "Downloads dependencies of stub configuration '${stub.name}'" +
+                            " into ${stub.destinationDir.get().asFile.relativeToOrSelf(projectDir)}."
+                    from(config)
+                    into(stub.destinationDir)
+                    rename(stripVersionsAccordingToConfig(config))
+                    group = "build setup"
+                }
+
+                syncTasks.add(task)
+            }
 
             // Extend clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
             // classes_gen, tests_gen, tests_gen.caches.
@@ -77,14 +142,17 @@ open class MpsPlugin @Inject constructor(val softwareComponentFactory: SoftwareC
             mpsConfiguration.isCanBeResolved = true
             mpsConfiguration.isCanBeConsumed = false
 
-            val setupTask = tasks.register("setup", Sync::class.java) {
+            syncTasks.add(tasks.register("resolveGenerationDependencies", Sync::class.java) {
                 dependsOn(generationConfiguration)
-                from({ generationConfiguration.resolve().map { project.zipTree(it) } })
+                from({ generationConfiguration.resolve().map(project::zipTree) })
                 into("build/dependencies")
                 group = "build setup"
-                description = "Downloads generation dependencies into ${destinationDir.relativeToOrSelf(projectDir)}."
+                description = "Downloads dependencies of '${generationConfiguration.name}' configuration" +
+                        " and unpacks them into ${destinationDir.relativeToOrSelf(projectDir)}."
             })
 
+            val setupTask = tasks.register("setup", Sync::class.java) {
+                dependsOn(syncTasks)
                 group = "build setup"
                 description = "Sets up the project so that it can be opened in MPS."
             }

@@ -92,7 +92,20 @@ All code snippets below use Kotlin syntax for Gradle.
     }
     ```
 
-5. For publishing apply the `maven-publish` plugin and use `from(components["mps"])`:
+5. (Since 1.2.0) Specify JAR dependencies that are used as stubs and where they should be placed:
+
+    ```kotlin
+    stubs {
+        register("stubs") {
+            destinationDir("solutions/my.stubs/lib")
+            dependency("org.apache.commons:commons-lang3:3.12.0")
+            ...
+        }
+        ...
+    }
+    ```
+
+6. For publishing apply the `maven-publish` plugin and use `from(components["mps"])`:
 
    ```kotlin
    plugins {
@@ -119,9 +132,16 @@ set of _lifecycle tasks_ such as `clean`, `assemble`, `check`, or `build`.
 
 The plugin creates the following tasks:
 
-* `setup`: unpacks all dependencies of the `generation` configuration into `build/dependencies`.
+* `setup`: unpacks all dependencies of the `generation` configuration into `build/dependencies`. Since 1.2.0 it also
+  triggers the individual tasks to unpack stubs, see below. Executing the `setup` task is required before the project
+  can be opened in MPS.
 * `resolveMpsForGeneration`: downloads the MPS artifact specified by the `mps` configuration and unpacks it into
   `build/mps`.
+* `resolve<StubName>`: a [Sync](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.Sync.html) task created
+  for each stub block (`<StubName>` is the name of the stub entry, capitalized). The task resolves the dependencies
+  configured in the stub block and copies them into the specified destination directory of the stub, deleting any other
+  files present in that directory. When copying the dependencies their version numbers are stripped. This makes it 
+  possible to upgrade dependency versions in the Gradle build script without also reconfiguring the MPS stub solutions.
 * `generateBuildscript`: generates the build script using MPS. The build model location is detected automatically.
 * `assembleMps`: runs `generate` and `assemble` targets of the generated Ant script. The `assemble` lifecycle task is
   set to depend on `assembleMps`. The version of the project is passed to Ant via `-Dversion=${project.version}` (since
@@ -137,3 +157,39 @@ to it.
 The plugin modifies the `clean` task to delete MPS-generated directories: `source_gen`, `source_gen.caches`,
 `classes_gen`, `tests_gen`, and `tests_gen.caches`. This is in addition to the default operation of `clean` task which
 deletes the project's build directory (`build`).
+
+## Stubs
+
+MPS code can make use of Java libraries after loading their JAR files as Java stubs. As a best practice these JARs
+should be placed into a `lib` folder underneath the solution that will load them.
+
+To avoid bloating your source code repository with binary files, this plugin can download these libraries during the
+build and place them into a configured directory. The aforementioned `lib` folder can then be added to `.gitignore`
+file (or equivalent).
+
+Configure the stubs as follows: 
+
+```kotlin
+stubs {
+    register("myStubs") {
+        destinationDir("solutions/my.stubs/lib")
+        dependency("org.apache.commons:commons-lang3:3.12.0")
+        ...
+    }
+    ...
+}
+```
+
+This declaration has several effects:
+* A configuration is created with the same name as the stub entry (`myStubs`) in the example above. The dependencies
+  are added to that configuration.
+* A task is created to download the dependencies and put them under the destination directory (`solutions/my.stubs/lib`
+  in the example above). The name of the configuration will be `resolve<StubName>` where `<StubName>` is the capitalized
+  name of the stub configuration. In the example above the name of the task will be `resolveMyStubs`.
+
+Notes:
+* The task is of type [Sync](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.Sync.html). It will delete any
+  extra files present in the destination directory.
+* When copying the dependencies their version number will be stripped from the JAR file names.
+  `commons-lang3-3.12.0.jar` will become `commons-lang3.jar`. Upgrading the dependency version in Gradle will not
+  require updating the stub solution configuration in MPS.
