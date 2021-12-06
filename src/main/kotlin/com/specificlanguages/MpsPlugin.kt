@@ -5,6 +5,7 @@ import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.ExternalModuleDependency
+import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.DirectoryProperty
@@ -13,10 +14,7 @@ import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.bundling.Zip
-import org.gradle.kotlin.dsl.closureOf
-import org.gradle.kotlin.dsl.get
-import org.gradle.kotlin.dsl.listProperty
-import org.gradle.kotlin.dsl.typeOf
+import org.gradle.kotlin.dsl.*
 import java.io.File
 import javax.inject.Inject
 
@@ -137,6 +135,11 @@ open class MpsPlugin @Inject constructor(
             val generationConfiguration = configurations.create("generation")
             generationConfiguration.isCanBeResolved = true
             generationConfiguration.isCanBeConsumed = false
+
+            // Set type of all artifacts to "zip" by default
+            generationConfiguration.dependencies.withType(ModuleDependency::class).configureEach {
+                artifact { type = "zip" }
+            }
 
             val mpsConfiguration = configurations.create("mps")
             mpsConfiguration.isCanBeResolved = true

@@ -158,6 +158,17 @@ The plugin modifies the `clean` task to delete MPS-generated directories: `sourc
 `classes_gen`, `tests_gen`, and `tests_gen.caches`. This is in addition to the default operation of `clean` task which
 deletes the project's build directory (`build`).
 
+## Configurations
+
+The plugin creates two configurations, `mps` and `generation`. The `mps` configuration is used to specify the version
+of MPS to use, and should only contain a single dependency. The `generation` configuration specifies other MPS libraries
+that the project depends on (for example, mbeddr platform).
+
+All dependencies added to `generation` configuration will have their artifact type set to `zip`. This is important for
+compatibility with Maven.
+
+Further configurations may be created by the `stubs` block.
+
 ## Stubs
 
 MPS code can make use of Java libraries after loading their JAR files as Java stubs. As a best practice these JARs
