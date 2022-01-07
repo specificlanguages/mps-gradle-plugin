@@ -142,10 +142,12 @@ The plugin creates the following tasks:
   configured in the stub block and copies them into the specified destination directory of the stub, deleting any other
   files present in that directory. When copying the dependencies their version numbers are stripped. This makes it 
   possible to upgrade dependency versions in the Gradle build script without also reconfiguring the MPS stub solutions.
-* `generateBuildscript`: generates the build script using MPS. The build model location is detected automatically.
+* `generateBuildscript`: generates the build script using MPS. The build model location is detected automatically. 
+  Since 1.2.2 the task specifies all module files (`*.msd`, `*.mpl`, `*.devkit`) as its inputs since build scripts 
+  check their contents against the modules.
 * `assembleMps`: runs `generate` and `assemble` targets of the generated Ant script. The `assemble` lifecycle task is
-  set to depend on `assembleMps`. The version of the project is passed to Ant via `-Dversion=${project.version}` (since
-  1.1.1).
+  set to depend on `assembleMps`. Since 1.1.1 the version of the project is passed to Ant via `-Dversion=${project.
+  version}`. Since 1.2.2 the task specifies all `*.mps` files in all directories as its inputs.
 * `checkMps`: runs the `check` target of the generated Ant script. The `check` lifecycle task is set to depend
   on `checkMps`.
 * `package`: packages the modules built by `assembleMps` in a ZIP. The package is added to the `default` configuration
@@ -204,3 +206,19 @@ Notes:
 * When copying the dependencies their version number will be stripped from the JAR file names.
   `commons-lang3-3.12.0.jar` will become `commons-lang3.jar`. Upgrading the dependency version in Gradle will not
   require updating the stub solution configuration in MPS.
+
+## Incremental Builds
+
+(Since 1.2.2) Several tasks created by this plugin attempt to specify their input dependencies to make sure that 
+incremental builds work properly, i.e. the project is not rebuilt on irrelevant changes and is rebuilt on relevant 
+ones. The following tasks specify their inputs:
+
+* `assembleMps` depends on all `*.mps` files in the project.
+* `generateBuildscript` depends on the build model but also on all module files in the project (`*.msd`, `*.mpl`,
+  `*.devkit`) since the generator checks the build model against the modules during generation.
+
+Getting the dependencies 100 % correct is difficult so it is possible that Gradle would build the project even if it 
+should not. However, if you find that Gradle is *NOT* rebuilding your project when it should, please [report
+this](https://github.com/specificlanguages/mps-gradle-plugin/issues).
+
+You can do a clean build of the project by running `./gradlew clean build`.
