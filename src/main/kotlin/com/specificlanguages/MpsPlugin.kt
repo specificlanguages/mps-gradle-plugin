@@ -169,7 +169,7 @@ open class MpsPlugin @Inject constructor(
                     mpsConfiguration, buildModel, distLocation, distResolveTask, setupTask)
 
             val antConfig = configurations.detachedConfiguration(
-                    dependencies.create("org.apache.ant:ant-junit:1.10.1"))
+                    dependencies.create("org.apache.ant:ant-junit:1.10.12"))
 
             val artifactsDir = File(project.projectDir, "build/artifacts")
 
@@ -178,6 +178,7 @@ open class MpsPlugin @Inject constructor(
                 group = "build"
                 description = "Assembles the MPS project."
                 script = "build.xml"
+                inputs.files(fileTree(projectDir).include("**/*.mps")).withPropertyName("models")
                 targets = listOf("generate", "assemble")
                 scriptArgs = listOf("-Dmps_home=$distLocation", "-Dversion=${project.version}")
                 scriptClasspath = antConfig
@@ -263,7 +264,9 @@ open class MpsPlugin @Inject constructor(
 
             mainClass.set("de.itemis.mps.gradle.generate.MainKt")
 
-            inputs.file(buildModel)
+            inputs.file(buildModel).withPropertyName("build-model")
+            inputs.files(fileTree(this.project.projectDir).include("**/*.msd", "**/*.mpl", "**/*.devkit"))
+                .withPropertyName("module-files")
             outputs.file("build.xml")
 
             // Needed to avoid "URI is not hierarchical" exceptions
