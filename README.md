@@ -59,7 +59,7 @@ All code snippets below use Kotlin syntax for Gradle.
 
     ```kotlin
     plugins {
-        id("com.specificlanguages.mps") version "1.0.1"
+        id("com.specificlanguages.mps") version "1.2.2"
     }
     ```
 
