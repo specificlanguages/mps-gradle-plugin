@@ -11,6 +11,7 @@ This plugin also does not cover publishing to the JetBrains Plugins Repository.
 
 This plugin has been tested with the following combinations of Gradle and MPS:
 
+* Gradle 7.1 or above is required since version 1.2.0.
 * Gradle 7.2 and MPS 2020.3.5 (version 1.1.0),
 * Gradle 5.6.2 and MPS 2019.2.4 (version 1.0.0),
 * Gradle 5.6.2 and MPS 2019.1.5 (version 0.0.2).
@@ -159,6 +160,27 @@ to it.
 The plugin modifies the `clean` task to delete MPS-generated directories: `source_gen`, `source_gen.caches`,
 `classes_gen`, `tests_gen`, and `tests_gen.caches`. This is in addition to the default operation of `clean` task which
 deletes the project's build directory (`build`).
+
+## Task Dependency Graph
+
+```mermaid
+flowchart RL
+  setup --> resolveStub["resolve{STUB1,...,STUBn}"]
+  setup --> resolveGenerationDependencies
+  
+  assemble --> assembleMps
+  package --> assembleMps
+  
+  checkMps --> assembleMps
+  check --> checkMps
+  
+  assembleMps --> generateBuildscript
+  assembleMps --> resolveMpsForGeneration
+  
+  generateBuildscript --> resolveMpsForGeneration
+  generateBuildscript --> setup
+  
+```
 
 ## Configurations
 
