@@ -165,8 +165,15 @@ open class MpsPlugin @Inject constructor(
 
             val buildModel = findBuildModel(this)
 
-            val generateBuildscriptTask = project.maybeRegisterGenerateBuildscriptTask(
-                    mpsConfiguration, buildModel, distLocation, distResolveTask, setupTask)
+            val executeGeneratorsConfiguration = configurations.create("executeGenerators")
+            executeGeneratorsConfiguration.withDependencies {
+                if (isEmpty() && executeGeneratorsConfiguration.extendsFrom.isEmpty()) {
+                    add(dependencies.create("de.itemis.mps.build-backends:execute-generators:[1.0,2.0)"))
+                }
+            }
+
+            val generateBuildscriptTask = maybeRegisterGenerateBuildscriptTask(
+                project, executeGeneratorsConfiguration, buildModel, distLocation, distResolveTask, setupTask)
 
             val antConfig = configurations.detachedConfiguration(
                     dependencies.create("org.apache.ant:ant-junit:1.10.12"))
@@ -235,60 +242,47 @@ open class MpsPlugin @Inject constructor(
         }
     }
 
-    private fun Project.maybeRegisterGenerateBuildscriptTask(
-            mpsConfiguration: Configuration,
-            buildModel: File?,
-            distLocation: File,
-            distResolveTask: TaskProvider<Sync>,
-            setupTask: Any): TaskProvider<JavaExec>? {
+    private fun maybeRegisterGenerateBuildscriptTask(
+        project: Project,
+        generateBackendConfiguration: Configuration,
+        buildModel: File?,
+        distLocation: File,
+        distResolveTask: TaskProvider<Sync>,
+        setupTask: Any
+    ): TaskProvider<JavaExec>? {
         if (buildModel == null) {
             return null
         }
 
-        logger.info("Using build model {}", buildModel)
-        val buildModelName = readModelName(buildModel) ?: throw GradleException(
-                "Could not retrieve build model name from model $buildModel")
+        project.run {
+            logger.info("Using build model {}", buildModel)
+            val buildModelName = readModelName(buildModel) ?: throw GradleException(
+                "Could not retrieve build model name from model $buildModel"
+            )
 
-        return tasks.register("generateBuildscript", JavaExec::class.java) {
-            dependsOn(distResolveTask, setupTask)
-            args(
+            return project.tasks.register("generateBuildscript", JavaExec::class.java) {
+                dependsOn(distResolveTask, setupTask)
+                args(
                     "--project=${projectDir}",
-                    "--model=$buildModelName")
-            group = "build"
-            description = "Generate the Ant build script from ${buildModel.relativeToOrSelf(projectDir)}."
-            classpath(fileTree(File(distLocation, "lib")).include("**/*.jar"))
-            classpath(fileTree(File(distLocation, "plugins")).include("**/lib/**/*.jar"))
+                    "--model=$buildModelName"
+                )
+                group = "build"
+                description = "Generate the Ant build script from ${buildModel.relativeToOrSelf(projectDir)}."
+                classpath(fileTree(File(distLocation, "lib")).include("**/*.jar"))
+                classpath(fileTree(File(distLocation, "plugins")).include("**/lib/**/*.jar"))
+                classpath(generateBackendConfiguration)
 
-            val mpsVersion = getMpsVersion(mpsConfiguration)
-            classpath({ configurations.detachedConfiguration(createExecuteGeneratorDependency(mpsVersion)) })
+                mainClass.set("de.itemis.mps.gradle.generate.MainKt")
 
-            mainClass.set("de.itemis.mps.gradle.generate.MainKt")
+                inputs.file(buildModel).withPropertyName("build-model")
+                inputs.files(fileTree(this.project.projectDir).include("**/*.msd", "**/*.mpl", "**/*.devkit"))
+                    .withPropertyName("module-files")
+                outputs.file("build.xml")
 
-            inputs.file(buildModel).withPropertyName("build-model")
-            inputs.files(fileTree(this.project.projectDir).include("**/*.msd", "**/*.mpl", "**/*.devkit"))
-                .withPropertyName("module-files")
-            outputs.file("build.xml")
-
-            // Needed to avoid "URI is not hierarchical" exceptions
-            environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
+                // Needed to avoid "URI is not hierarchical" exceptions
+                environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
+            }
         }
     }
 
-    private fun getMpsVersion(mpsConfiguration: Configuration): String {
-        val dependencies = mpsConfiguration.dependencies
-        if (dependencies.size != 1) {
-            throw GradleException("Expected configuration '${mpsConfiguration.name}' to contain exactly one" +
-                    " dependency, the MPS to use. But found ${mpsConfiguration.dependencies.size} dependencies.")
-        }
-
-        return dependencies.first().version
-                ?: throw GradleException("Expected configuration '${mpsConfiguration.name}' to contain exactly one" +
-                        " dependency with a version. But the dependency has no version specified.")
-
-    }
-
-    private fun Project.createExecuteGeneratorDependency(mpsVersion: String): Dependency {
-        val dep = dependencies.create("de.itemis.mps:execute-generators:${mpsVersion}.+")
-        return dep
-    }
 }

@@ -60,7 +60,7 @@ All code snippets below use Kotlin syntax for Gradle.
 
     ```kotlin
     plugins {
-        id("com.specificlanguages.mps") version "1.2.2"
+        id("com.specificlanguages.mps") version "1.3.0"
     }
     ```
 
@@ -74,14 +74,14 @@ All code snippets below use Kotlin syntax for Gradle.
    ```
 
    The itemis mbeddr repository is used to download MPS as well as a small runner program to launch MPS from the command
-   line. (The launcher is part of [mbeddr mps-gradle-plugin](https://github.com/mbeddr/mps-gradle-plugin).) Maven
-   Central and JCenter repositories contain the Kotlin libraries that the launcher depends on.
+   line. (The launcher is part of [mps-build-backends](https://github. com/mbeddr/mps-build-backends).) Maven Central
+   and JCenter repositories contain the Kotlin libraries that the launcher depends on.
 
 3. Use the `mps` configuration to specify the MPS version to use:
 
    ```kotlin
    dependencies {
-       "mps"("com.jetbrains:mps:2019.1.5")
+       "mps"("com.jetbrains:mps:2021.1.4")
    }
    ```
 
@@ -184,14 +184,16 @@ flowchart RL
 
 ## Configurations
 
-The plugin creates two configurations, `mps` and `generation`. The `mps` configuration is used to specify the version
-of MPS to use, and should only contain a single dependency. The `generation` configuration specifies other MPS libraries
-that the project depends on (for example, mbeddr platform).
+The plugin creates the following configurations:
+* `mps` - the distribution of MPS to use.
+* `generation` - MPS libraries that the project depends on (such as mbeddr platform or MPS-extensions).
+* `executeGenerators` - can be used to override the version of the `execute-generators` backend. If left unconfigured,
+  a reasonable default will be used.
 
 All dependencies added to `generation` configuration will have their artifact type set to `zip`. This is important for
 compatibility with Maven.
 
-Further configurations may be created by the `stubs` block.
+Further configurations will be created by the `stubs` block.
 
 ## Stubs
 
