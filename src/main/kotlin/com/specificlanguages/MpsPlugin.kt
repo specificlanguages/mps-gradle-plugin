@@ -113,8 +113,7 @@ open class MpsPlugin @Inject constructor(
                 val stub = this
                 val config = stub.configuration
                 val task = tasks.register("resolve" + capitalize(stub.name), Sync::class) {
-                    description = "Downloads dependencies of stub configuration '${stub.name}'" +
-                            " into ${stub.destinationDir.get().asFile.relativeToOrSelf(projectDir)}."
+                    description = "Downloads dependencies of stub configuration '${stub.name}'."
                     from(config)
                     into(stub.destinationDir)
                     rename(stripVersionsAccordingToConfig(config))
@@ -148,8 +147,7 @@ open class MpsPlugin @Inject constructor(
                 from({ generationConfiguration.resolve().map(project::zipTree) })
                 into("build/dependencies")
                 group = "build setup"
-                description = "Downloads dependencies of '${generationConfiguration.name}' configuration" +
-                        " and unpacks them into ${destinationDir.relativeToOrSelf(projectDir)}."
+                description = "Downloads and unpacks dependencies of '${generationConfiguration.name}' configuration."
             })
 
             val setupTask = tasks.register("setup", Sync::class) {
