@@ -9,7 +9,6 @@ import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
@@ -98,15 +97,14 @@ fun capitalize(s: String): String = s[0].toUpperCase() + s.substring(1)
 
 @Suppress("unused")
 open class MpsPlugin @Inject constructor(
-    val objectFactory: ObjectFactory,
-    val softwareComponentFactory: SoftwareComponentFactory
+    private val softwareComponentFactory: SoftwareComponentFactory
 ) : Plugin<Project> {
 
     override fun apply(project: Project) {
         project.run {
-            pluginManager.apply(BasePlugin::class.java)
+            pluginManager.apply(BasePlugin::class)
 
-            val stubs = objectFactory.domainObjectContainer(StubConfiguration::class.java)
+            val stubs = objects.domainObjectContainer(StubConfiguration::class)
             extensions.add(typeOf<NamedDomainObjectContainer<StubConfiguration>>(), "stubs", stubs)
 
             val syncTasks = objects.listProperty<TaskProvider<Sync>>()
@@ -114,7 +112,7 @@ open class MpsPlugin @Inject constructor(
             stubs.all {
                 val stub = this
                 val config = stub.configuration
-                val task = tasks.register("resolve" + capitalize(stub.name), Sync::class.java) {
+                val task = tasks.register("resolve" + capitalize(stub.name), Sync::class) {
                     description = "Downloads dependencies of stub configuration '${stub.name}'" +
                             " into ${stub.destinationDir.get().asFile.relativeToOrSelf(projectDir)}."
                     from(config)
@@ -128,7 +126,7 @@ open class MpsPlugin @Inject constructor(
 
             // Extend clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
             // classes_gen, tests_gen, tests_gen.caches.
-            tasks.named(BasePlugin.CLEAN_TASK_NAME, Delete::class.java) {
+            tasks.named(BasePlugin.CLEAN_TASK_NAME, Delete::class) {
                 delete({ allGeneratedDirs(projectDir).asIterable() })
             }
 
@@ -145,7 +143,7 @@ open class MpsPlugin @Inject constructor(
             mpsConfiguration.isCanBeResolved = true
             mpsConfiguration.isCanBeConsumed = false
 
-            syncTasks.add(tasks.register("resolveGenerationDependencies", Sync::class.java) {
+            syncTasks.add(tasks.register("resolveGenerationDependencies", Sync::class) {
                 dependsOn(generationConfiguration)
                 from({ generationConfiguration.resolve().map(project::zipTree) })
                 into("build/dependencies")
@@ -154,7 +152,7 @@ open class MpsPlugin @Inject constructor(
                         " and unpacks them into ${destinationDir.relativeToOrSelf(projectDir)}."
             })
 
-            val setupTask = tasks.register("setup", Sync::class.java) {
+            val setupTask = tasks.register("setup", Sync::class) {
                 dependsOn(syncTasks)
                 group = "build setup"
                 description = "Sets up the project so that it can be opened in MPS."
@@ -178,9 +176,9 @@ open class MpsPlugin @Inject constructor(
             val antConfig = configurations.detachedConfiguration(
                     dependencies.create("org.apache.ant:ant-junit:1.10.12"))
 
-            val artifactsDir = File(project.projectDir, "build/artifacts")
+            val artifactsDir = File(projectDir, "build/artifacts")
 
-            val assembleMps = tasks.register("assembleMps", RunAntScript::class.java) {
+            val assembleMps = tasks.register("assembleMps", RunAntScript::class) {
                 dependsOn(distResolveTask, generateBuildscriptTask ?: setupTask)
                 group = "build"
                 description = "Assembles the MPS project."
@@ -192,17 +190,17 @@ open class MpsPlugin @Inject constructor(
                 outputs.dir(artifactsDir)
             }
 
-            val packagePluginZip = tasks.register("package", Zip::class.java) {
+            val packagePluginZip = tasks.register("package", Zip::class) {
                 description = "Packages the built modules in a ZIP archive."
                 group = "build"
                 dependsOn(assembleMps)
-                destinationDirectory.set(File(project.buildDir, "dist"))
+                destinationDirectory.set(File(buildDir, "dist"))
                 archiveBaseName.set(project.name)
                 from(assembleMps)
             }
             tasks.named("assemble") { dependsOn(assembleMps) }
 
-            val checkMps = tasks.register("checkMps", RunAntScript::class.java) {
+            val checkMps = tasks.register("checkMps", RunAntScript::class) {
                 dependsOn(assembleMps)
                 group = "build"
                 description = "Runs tests in the MPS project."
@@ -213,7 +211,7 @@ open class MpsPlugin @Inject constructor(
             }
             tasks.named("check") { dependsOn(checkMps) }
 
-            val defaultConfiguration = project.configurations["default"]
+            val defaultConfiguration = configurations["default"]
             defaultConfiguration.extendsFrom(generationConfiguration)
             defaultConfiguration.outgoing.artifact(packagePluginZip)
             defaultConfiguration.isCanBeConsumed = true
@@ -221,7 +219,7 @@ open class MpsPlugin @Inject constructor(
 
             // Add an attribute to keep Gradle happy ("variant must have at least one attribute")
             defaultConfiguration.attributes.attribute(Usage.USAGE_ATTRIBUTE,
-                project.objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
+                objects.named(Usage::class, Usage.JAVA_RUNTIME))
 
             val mpsComponent = softwareComponentFactory.adhoc("mps")
             mpsComponent.addVariantsFromConfiguration(defaultConfiguration) {
@@ -233,7 +231,7 @@ open class MpsPlugin @Inject constructor(
 
     private fun Project.registerMpsResolveTask(mpsConfiguration: Configuration,
                                                distLocation: File): TaskProvider<Sync> {
-        return tasks.register("resolveMpsForGeneration", Sync::class.java) {
+        return tasks.register("resolveMpsForGeneration", Sync::class) {
             from({ mpsConfiguration.map(::zipTree) })
             into(distLocation)
             description = "Downloads MPS as specified by '${mpsConfiguration.name}' configuration" +
@@ -260,7 +258,7 @@ open class MpsPlugin @Inject constructor(
                 "Could not retrieve build model name from model $buildModel"
             )
 
-            return project.tasks.register("generateBuildscript", JavaExec::class.java) {
+            return tasks.register("generateBuildscript", JavaExec::class) {
                 dependsOn(distResolveTask, setupTask)
                 args(
                     "--project=${projectDir}",
@@ -275,7 +273,7 @@ open class MpsPlugin @Inject constructor(
                 mainClass.set("de.itemis.mps.gradle.generate.MainKt")
 
                 inputs.file(buildModel).withPropertyName("build-model")
-                inputs.files(fileTree(this.project.projectDir).include("**/*.msd", "**/*.mpl", "**/*.devkit"))
+                inputs.files(fileTree(projectDir).include("**/*.msd", "**/*.mpl", "**/*.devkit"))
                     .withPropertyName("module-files")
                 outputs.file("build.xml")
 
