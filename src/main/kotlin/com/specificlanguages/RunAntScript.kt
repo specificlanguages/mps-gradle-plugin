@@ -1,32 +1,30 @@
 package com.specificlanguages
 
 import org.gradle.api.DefaultTask
-import org.gradle.api.file.FileCollection
+import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.TaskAction
+import org.gradle.kotlin.dsl.listProperty
+import javax.inject.Inject
 
-open class RunAntScript : DefaultTask() {
+internal open class RunAntScript @Inject constructor(objects: ObjectFactory) : DefaultTask() {
     @InputFile
     lateinit var script: Any
 
     @Input
-    var targets: List<String> = emptyList()
+    val targets: ListProperty<String> = objects.listProperty()
 
     @InputFiles
-    var scriptClasspath: FileCollection? = null
+    var scriptClasspath: Any? = null
 
     @Input
-    var scriptArgs: List<String> = emptyList()
-
-    fun targets(vararg targets: String) {
-        this.targets = targets.toList()
-    }
+    val scriptArgs: ListProperty<String> = objects.listProperty()
 
     @TaskAction
     fun build() {
-        val allArgs = scriptArgs
 
         project.javaexec {
             mainClass.set("org.apache.tools.ant.launch.Launcher")
@@ -36,9 +34,16 @@ open class RunAntScript : DefaultTask() {
                 classpath(scriptClasspath)
             }
 
-            args(allArgs)
-            args("-buildfile", project.file(script))
-            args(targets)
+            argumentProviders.add {
+                val args = mutableListOf<String>()
+                args.run {
+                    addAll(scriptArgs.get())
+                    add("-buildfile")
+                    add(project.file(script).toString())
+                    addAll(targets.get())
+                }
+                args
+            }
         }
     }
 }

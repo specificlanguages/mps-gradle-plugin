@@ -136,12 +136,12 @@ The plugin creates the following tasks:
 * `setup`: unpacks all dependencies of the `generation` configuration into `build/dependencies`. Since 1.2.0 it also
   triggers the individual tasks to unpack stubs, see below. Executing the `setup` task is required before the project
   can be opened in MPS.
-* `resolveMpsForGeneration`: downloads the MPS artifact specified by the `mps` configuration and unpacks it into
-  `build/mps`.
+* ~~`resolveMpsForGeneration`: downloads the MPS artifact specified by the `mps` configuration and unpacks it into
+  `build/mps`.~~ (Removed in 1.4.0.)
 * `resolve<StubName>`: a [Sync](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.Sync.html) task created
   for each stub block (`<StubName>` is the name of the stub entry, capitalized). The task resolves the dependencies
   configured in the stub block and copies them into the specified destination directory of the stub, deleting any other
-  files present in that directory. When copying the dependencies their version numbers are stripped. This makes it 
+  files present in that directory. When copying the dependencies their version numbers are stripped. This makes it
   possible to upgrade dependency versions in the Gradle build script without also reconfiguring the MPS stub solutions.
 * `generateBuildscript`: generates the build script using MPS. The build model location is detected automatically. 
   Since 1.2.2 the task specifies all module files (`*.msd`, `*.mpl`, `*.devkit`) as its inputs since build scripts 
@@ -161,6 +161,14 @@ The plugin modifies the `clean` task to delete MPS-generated directories: `sourc
 `classes_gen`, `tests_gen`, and `tests_gen.caches`. This is in addition to the default operation of `clean` task which
 deletes the project's build directory (`build`).
 
+## Downloading and unzipping MPS
+
+Before version 1.4.0 the plugin declared a task, `resolveMpsForGeneration`, to download and unzip the MPS distribution
+under `build/mps`. In 1.4.0 and above this is handled via Gradle artifact transforms. This should enable sharing the
+MPS distributions between projects that use the same MPS version (for example, among subprojects of a large project).
+
+The task is left empty in 1.4.0 for backwards compatibility purposes.
+
 ## Task Dependency Graph
 
 ```mermaid
@@ -175,9 +183,6 @@ flowchart RL
   check --> checkMps
   
   assembleMps --> generateBuildscript
-  assembleMps --> resolveMpsForGeneration
-  
-  generateBuildscript --> resolveMpsForGeneration
   generateBuildscript --> setup
   
 ```
@@ -185,6 +190,7 @@ flowchart RL
 ## Configurations
 
 The plugin creates the following configurations:
+
 * `mps` - the distribution of MPS to use.
 * `generation` - MPS libraries that the project depends on (such as mbeddr platform or MPS-extensions).
 * `executeGenerators` - can be used to override the version of the `execute-generators` backend. If left unconfigured,

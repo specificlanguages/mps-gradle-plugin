@@ -6,6 +6,7 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.artifacts.ModuleDependency
+import org.gradle.api.attributes.Attribute
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.DirectoryProperty
@@ -101,6 +102,8 @@ open class MpsPlugin @Inject constructor(
 ) : Plugin<Project> {
 
     override fun apply(project: Project) {
+        val unzippedMpsArtifactType = "unzipped-mps-distribution"
+
         project.run {
             pluginManager.apply(BasePlugin::class)
 
@@ -142,6 +145,13 @@ open class MpsPlugin @Inject constructor(
             mpsConfiguration.isCanBeResolved = true
             mpsConfiguration.isCanBeConsumed = false
 
+            val artifactType = Attribute.of("artifactType", String::class.java)
+
+            dependencies.registerTransform(UnzipMps::class) {
+                from.attribute(artifactType, "zip")
+                to.attribute(artifactType, unzippedMpsArtifactType)
+            }
+
             syncTasks.add(tasks.register("resolveGenerationDependencies", Sync::class) {
                 dependsOn(generationConfiguration)
                 from({ generationConfiguration.resolve().map(project::zipTree) })
@@ -156,8 +166,17 @@ open class MpsPlugin @Inject constructor(
                 description = "Sets up the project so that it can be opened in MPS."
             }
 
-            val distLocation = File(buildDir, "mps")
-            val distResolveTask = registerMpsResolveTask(mpsConfiguration, distLocation)
+            val distLocation = provider {
+                mpsConfiguration.incoming.artifactView { attributes.attribute(artifactType, unzippedMpsArtifactType) }
+                    .files.singleFile
+            }
+
+            // Deprecated, remove in 2.0
+            tasks.register("resolveMpsForGeneration") {
+                doLast {
+                    logger.warn("${name} is deprecated since mps-gradle-plugin version 1.4.0 and will be removed in version 2")
+                }
+            }
 
             val buildModel = findBuildModel(this)
 
@@ -169,21 +188,29 @@ open class MpsPlugin @Inject constructor(
             }
 
             val generateBuildscriptTask = maybeRegisterGenerateBuildscriptTask(
-                project, executeGeneratorsConfiguration, buildModel, distLocation, distResolveTask, setupTask)
+                project,
+                executeGeneratorsConfiguration,
+                buildModel,
+                distLocation,
+                setupTask
+            )
 
             val antConfig = configurations.detachedConfiguration(
-                    dependencies.create("org.apache.ant:ant-junit:1.10.12"))
+                dependencies.create("org.apache.ant:ant-junit:1.10.12")
+            )
 
             val artifactsDir = layout.buildDirectory.dir("artifacts")
 
             val assembleMps = tasks.register("assembleMps", RunAntScript::class) {
-                dependsOn(distResolveTask, generateBuildscriptTask ?: setupTask)
+                dependsOn(generateBuildscriptTask ?: setupTask)
                 group = "build"
                 description = "Assembles the MPS project."
                 script = "build.xml"
                 inputs.files(fileTree(projectDir).include("**/*.mps")).withPropertyName("models")
-                targets = listOf("generate", "assemble")
-                scriptArgs = listOf("-Dmps_home=$distLocation", "-Dversion=${project.version}")
+                targets.set(listOf("generate", "assemble"))
+                scriptArgs.addAll(provider {
+                    listOf("-Dmps_home=${distLocation.get()}", "-Dversion=${project.version}")
+                })
                 scriptClasspath = antConfig
                 outputs.dir(artifactsDir)
             }
@@ -202,8 +229,10 @@ open class MpsPlugin @Inject constructor(
                 group = "build"
                 description = "Runs tests in the MPS project."
                 script = "build.xml"
-                targets = listOf("check")
-                scriptArgs = listOf("-Dmps_home=$distLocation")
+                targets.set(listOf("check"))
+                scriptArgs.addAll(provider {
+                    listOf("-Dmps_home=${distLocation.get()}")
+                })
                 scriptClasspath = antConfig
             }
             tasks.named("check") { dependsOn(checkMps) }
@@ -226,23 +255,11 @@ open class MpsPlugin @Inject constructor(
         }
     }
 
-    private fun Project.registerMpsResolveTask(mpsConfiguration: Configuration,
-                                               distLocation: File): TaskProvider<Sync> {
-        return tasks.register("resolveMpsForGeneration", Sync::class) {
-            from({ mpsConfiguration.map(::zipTree) })
-            into(distLocation)
-            description = "Downloads MPS as specified by '${mpsConfiguration.name}' configuration" +
-                    " and unpacks it into ${distLocation.relativeToOrSelf(projectDir)}."
-            group = "build setup"
-        }
-    }
-
     private fun maybeRegisterGenerateBuildscriptTask(
         project: Project,
         generateBackendConfiguration: Configuration,
         buildModel: File?,
-        distLocation: File,
-        distResolveTask: TaskProvider<Sync>,
+        distLocation: Provider<File>,
         setupTask: Any
     ): TaskProvider<JavaExec>? {
         if (buildModel == null) {
@@ -256,15 +273,15 @@ open class MpsPlugin @Inject constructor(
             )
 
             return tasks.register("generateBuildscript", JavaExec::class) {
-                dependsOn(distResolveTask, setupTask)
+                dependsOn(setupTask)
                 args(
                     "--project=${projectDir}",
                     "--model=$buildModelName"
                 )
                 group = "build"
                 description = "Generate the Ant build script from ${buildModel.relativeToOrSelf(projectDir)}."
-                classpath(fileTree(File(distLocation, "lib")).include("**/*.jar"))
-                classpath(fileTree(File(distLocation, "plugins")).include("**/lib/**/*.jar"))
+                classpath(fileTree(distLocation.map { it.resolve("lib") }).include("**/*.jar"))
+                classpath(fileTree(distLocation.map { it.resolve("plugins") }).include("**/lib/**/*.jar"))
                 classpath(generateBackendConfiguration)
 
                 mainClass.set("de.itemis.mps.gradle.generate.MainKt")
