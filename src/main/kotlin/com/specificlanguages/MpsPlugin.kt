@@ -145,7 +145,7 @@ open class MpsPlugin @Inject constructor(
             syncTasks.add(tasks.register("resolveGenerationDependencies", Sync::class) {
                 dependsOn(generationConfiguration)
                 from({ generationConfiguration.resolve().map(project::zipTree) })
-                into("build/dependencies")
+                into(layout.buildDirectory.dir("dependencies"))
                 group = "build setup"
                 description = "Downloads and unpacks dependencies of '${generationConfiguration.name}' configuration."
             })
@@ -174,7 +174,7 @@ open class MpsPlugin @Inject constructor(
             val antConfig = configurations.detachedConfiguration(
                     dependencies.create("org.apache.ant:ant-junit:1.10.12"))
 
-            val artifactsDir = File(projectDir, "build/artifacts")
+            val artifactsDir = layout.buildDirectory.dir("artifacts")
 
             val assembleMps = tasks.register("assembleMps", RunAntScript::class) {
                 dependsOn(distResolveTask, generateBuildscriptTask ?: setupTask)
@@ -191,8 +191,7 @@ open class MpsPlugin @Inject constructor(
             val packagePluginZip = tasks.register("package", Zip::class) {
                 description = "Packages the built modules in a ZIP archive."
                 group = "build"
-                dependsOn(assembleMps)
-                destinationDirectory.set(File(buildDir, "dist"))
+                destinationDirectory.set(layout.buildDirectory.dir("dist"))
                 archiveBaseName.set(project.name)
                 from(assembleMps)
             }
