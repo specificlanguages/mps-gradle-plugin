@@ -30,7 +30,7 @@ open class RunAntScript : DefaultTask() {
 
         project.javaexec {
             mainClass.set("org.apache.tools.ant.launch.Launcher")
-            workingDir = project.rootDir
+            workingDir = project.projectDir
 
             if (scriptClasspath != null) {
                 classpath(scriptClasspath)
