@@ -74,7 +74,7 @@ All code snippets below use Kotlin syntax for Gradle.
    ```
 
    The itemis mbeddr repository is used to download MPS as well as a small runner program to launch MPS from the command
-   line. (The launcher is part of [mps-build-backends](https://github. com/mbeddr/mps-build-backends).) Maven Central
+   line. (The launcher is part of [mps-build-backends](https://github.com/mbeddr/mps-build-backends).) Maven Central
    and JCenter repositories contain the Kotlin libraries that the launcher depends on.
 
 3. Use the `mps` configuration to specify the MPS version to use:
