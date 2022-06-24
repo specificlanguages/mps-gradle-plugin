@@ -102,18 +102,20 @@ open class MpsPlugin @Inject constructor(
                 delete({ allGeneratedDirs(projectDir).asIterable() })
             }
 
-            val generationConfiguration = configurations.create("generation")
-            generationConfiguration.isCanBeResolved = true
-            generationConfiguration.isCanBeConsumed = false
+            val generationConfiguration = configurations.create("generation") {
+                isCanBeResolved = true
+                isCanBeConsumed = false
+            }
 
             // Set type of all artifacts to "zip" by default
             generationConfiguration.dependencies.withType(ModuleDependency::class).configureEach {
                 artifact { type = "zip" }
             }
 
-            val mpsConfiguration = configurations.create("mps")
-            mpsConfiguration.isCanBeResolved = true
-            mpsConfiguration.isCanBeConsumed = false
+            val mpsConfiguration = configurations.register("mps") {
+                isCanBeResolved = true
+                isCanBeConsumed = false
+            }
 
             val artifactType = Attribute.of("artifactType", String::class.java)
 
@@ -208,15 +210,15 @@ open class MpsPlugin @Inject constructor(
             }
             tasks.named("check") { dependsOn(checkMps) }
 
-            val defaultConfiguration = configurations["default"]
-            defaultConfiguration.extendsFrom(generationConfiguration)
-            defaultConfiguration.outgoing.artifact(packagePluginZip)
-            defaultConfiguration.isCanBeConsumed = true
-            defaultConfiguration.isCanBeResolved = false
+            val defaultConfiguration = configurations["default"].apply {
+                extendsFrom(generationConfiguration)
+                outgoing.artifact(packagePluginZip)
+                isCanBeConsumed = true
+                isCanBeResolved = false
 
-            // Add an attribute to keep Gradle happy ("variant must have at least one attribute")
-            defaultConfiguration.attributes.attribute(Usage.USAGE_ATTRIBUTE,
-                objects.named(Usage::class, Usage.JAVA_RUNTIME))
+                // Add an attribute to keep Gradle happy ("variant must have at least one attribute")
+                attributes.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class, Usage.JAVA_RUNTIME))
+            }
 
             val mpsComponent = softwareComponentFactory.adhoc("mps")
             mpsComponent.addVariantsFromConfiguration(defaultConfiguration) {
