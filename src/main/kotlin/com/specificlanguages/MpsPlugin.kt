@@ -164,9 +164,11 @@ open class MpsPlugin @Inject constructor(
                 setupTask
             )
 
-            val antConfig = configurations.detachedConfiguration(
-                dependencies.create("org.apache.ant:ant-junit:1.10.12")
-            )
+            val antConfig = configurations.register("ant") {
+                defaultDependencies {
+                    add(project.dependencies.create("org.apache.ant:ant-junit:1.10.12"))
+                }
+            }
 
             val artifactsDir = layout.buildDirectory.dir("artifacts")
 
