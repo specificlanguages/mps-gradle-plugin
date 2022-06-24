@@ -1,15 +1,11 @@
 package com.specificlanguages
 
-import groovy.lang.Closure
 import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
@@ -55,32 +51,6 @@ private fun allGeneratedDirs(root : File): Sequence<File> {
             }
         }
     }
-}
-
-abstract class StubConfiguration(private val project: Project, private val name: String) : Named {
-    override fun getName(): String = name
-
-    @get:OutputDirectory
-    abstract val destinationDir: DirectoryProperty
-
-    @get:Input
-    val configuration: NamedDomainObjectProvider<Configuration> = project.configurations.register(name) { isCanBeConsumed = false }
-
-    fun destinationDir(path: Any) {
-        destinationDir.set(project.file(path))
-    }
-
-    fun dependency(notation: Any): Dependency? {
-        return project.dependencies.add(configuration.name, notation)
-    }
-
-    fun dependency(notation: Any, config: Closure<*>): Dependency {
-        return project.dependencies.add(configuration.name, notation, config)
-    }
-
-    fun dependency(notation: Any, config: (ExternalModuleDependency).() -> Unit): ExternalModuleDependency =
-        dependency(notation, closureOf(config)) as ExternalModuleDependency
-
 }
 
 fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Transformer<String, String> {
