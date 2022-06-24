@@ -191,8 +191,7 @@ open class MpsPlugin @Inject constructor(
             val packagePluginZip = tasks.register("package", Zip::class) {
                 description = "Packages the built modules in a ZIP archive."
                 group = "build"
-                destinationDirectory.set(layout.buildDirectory.dir("dist"))
-                archiveBaseName.set(project.name)
+
                 from(assembleMps)
             }
             tasks.named("assemble") { dependsOn(assembleMps) }
