@@ -6,6 +6,7 @@ import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
+import org.gradle.api.file.*
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
@@ -179,7 +180,9 @@ open class MpsPlugin @Inject constructor(
                 group = "build"
                 description = "Assembles the MPS project."
                 script = "build.xml"
-                inputs.files(fileTree(projectDir).include("**/*.mps")).withPropertyName("models")
+                inputs.files(projectDirExcludingBuildDir(project).include("**/*.mps"))
+                    .ignoreEmptyDirectories()
+                    .withPropertyName("models")
                 targets.set(listOf("generate", "assemble"))
                 scriptArgs.addAll(provider {
                     listOf("-Dmps_home=${distLocation.get()}", "-Dversion=${project.version}")
@@ -227,6 +230,18 @@ open class MpsPlugin @Inject constructor(
         }
     }
 
+    private fun projectDirExcludingBuildDir(project: Project): ConfigurableFileTree {
+        val projectDir = project.projectDir
+        val projectTree = project.fileTree(projectDir)
+
+        val buildDir = project.buildDir
+        if (buildDir.startsWith(projectDir)) {
+            projectTree.exclude(buildDir.relativeTo(projectDir).path)
+        }
+
+        return projectTree
+    }
+
     private fun maybeRegisterGenerateBuildscriptTask(
         project: Project,
         generateBackendConfiguration: Configuration,
@@ -259,7 +274,8 @@ open class MpsPlugin @Inject constructor(
                 mainClass.set("de.itemis.mps.gradle.generate.MainKt")
 
                 inputs.file(buildModel).withPropertyName("build-model")
-                inputs.files(fileTree(projectDir).include("**/*.msd", "**/*.mpl", "**/*.devkit"))
+                inputs.files(projectDirExcludingBuildDir(project).include("**/*.msd", "**/*.mpl", "**/*.devkit"))
+                    .ignoreEmptyDirectories()
                     .withPropertyName("module-files")
                 outputs.file("build.xml")
 
