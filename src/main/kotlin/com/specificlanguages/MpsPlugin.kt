@@ -150,10 +150,9 @@ open class MpsPlugin @Inject constructor(
 
             val buildModel = findBuildModel(this)
 
-            val executeGeneratorsConfiguration = configurations.create("executeGenerators")
-            executeGeneratorsConfiguration.withDependencies {
-                if (isEmpty() && executeGeneratorsConfiguration.extendsFrom.isEmpty()) {
-                    add(dependencies.create("de.itemis.mps.build-backends:execute-generators:[1.0,2.0)"))
+            val executeGeneratorsConfiguration = configurations.create("executeGenerators") {
+                defaultDependencies {
+                    add(project.dependencies.create("de.itemis.mps.build-backends:execute-generators:[1.0,2.0)"))
                 }
             }
 
