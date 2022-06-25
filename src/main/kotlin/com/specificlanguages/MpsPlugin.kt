@@ -57,7 +57,7 @@ private fun allGeneratedDirs(root : File): Sequence<File> {
     }
 }
 
-fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Transformer<String, String> {
+private fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Transformer<String, String> {
     return Transformer { filename ->
         val ra = config.get().resolvedConfiguration.resolvedArtifacts.find { ra -> ra.file.name == filename }!!
         if (ra.classifier != null) {
@@ -68,7 +68,7 @@ fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Transformer
     }
 }
 
-fun capitalize(s: String): String = s[0].toUpperCase() + s.substring(1)
+private fun capitalize(s: String): String = s[0].toUpperCase() + s.substring(1)
 
 @Suppress("unused")
 open class MpsPlugin @Inject constructor(

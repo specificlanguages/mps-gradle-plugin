@@ -27,7 +27,7 @@ import org.gradle.kotlin.dsl.support.unzipTo
 /**
  * Unzips input artifact into 'mps' directory of the transformation outputs
  */
-abstract class UnzipMps : TransformAction<TransformParameters.None> {
+internal abstract class UnzipMps : TransformAction<TransformParameters.None> {
     @get:InputArtifact
     abstract val inputArtifact: Provider<FileSystemLocation>
 
