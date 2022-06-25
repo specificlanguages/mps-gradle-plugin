@@ -6,10 +6,13 @@ import org.gradle.api.artifacts.ModuleDependency
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
-import org.gradle.api.file.*
+import org.gradle.api.file.ConfigurableFileTree
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.provider.Provider
-import org.gradle.api.tasks.*
+import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.Sync
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.*
 import java.io.File
@@ -125,10 +128,23 @@ open class MpsPlugin @Inject constructor(
                 to.attribute(artifactType, unzippedMpsArtifactType)
             }
 
+            val mpsDefaults = extensions.create<MpsDefaultsExtension>("mpsDefaults").apply {
+                mpsHome.convention(layout.dir(mpsConfiguration.map {
+                    it.incoming
+                        .artifactView { attributes.attribute(artifactType, unzippedMpsArtifactType) }
+                        .files
+                        .singleFile
+                }))
+
+                buildScript.convention(layout.projectDirectory.file("build.xml"))
+
+                dependenciesDirectory.convention(layout.buildDirectory.dir("dependencies"))
+            }
+
             syncTasks.add(tasks.register("resolveGenerationDependencies", Sync::class) {
                 dependsOn(generationConfiguration)
                 from({ generationConfiguration.resolve().map(project::zipTree) })
-                into(layout.buildDirectory.dir("dependencies"))
+                into(mpsDefaults.dependenciesDirectory)
                 group = "build setup"
                 description = "Downloads and unpacks dependencies of '${generationConfiguration.name}' configuration."
             })
@@ -137,11 +153,6 @@ open class MpsPlugin @Inject constructor(
                 dependsOn(syncTasks)
                 group = "build setup"
                 description = "Sets up the project so that it can be opened in MPS."
-            }
-
-            val distLocation = provider {
-                mpsConfiguration.incoming.artifactView { attributes.attribute(artifactType, unzippedMpsArtifactType) }
-                    .files.singleFile
             }
 
             // Deprecated, remove in 2.0
@@ -163,7 +174,7 @@ open class MpsPlugin @Inject constructor(
                 project,
                 executeGeneratorsConfiguration,
                 buildModel,
-                distLocation,
+                mpsDefaults,
                 setupTask
             )
 
@@ -175,19 +186,25 @@ open class MpsPlugin @Inject constructor(
 
             val artifactsDir = layout.buildDirectory.dir("artifacts")
 
+            tasks.withType(RunAntScript::class) {
+                buildScript.convention(mpsDefaults.buildScript)
+                antProperties.convention(project.provider {
+                    mapOf("mps_home" to mpsDefaults.mpsHome.get().asFile.path,
+                        "version" to project.version.toString())
+                })
+                classpath.convention(antConfig)
+            }
+
             val assembleMps = tasks.register("assembleMps", RunAntScript::class) {
                 dependsOn(generateBuildscriptTask ?: setupTask)
                 group = "build"
                 description = "Assembles the MPS project."
-                script = "build.xml"
+
+                targets.set(listOf("generate", "assemble"))
+
                 inputs.files(projectDirExcludingBuildDir(project).include("**/*.mps"))
                     .ignoreEmptyDirectories()
                     .withPropertyName("models")
-                targets.set(listOf("generate", "assemble"))
-                scriptArgs.addAll(provider {
-                    listOf("-Dmps_home=${distLocation.get()}", "-Dversion=${project.version}")
-                })
-                scriptClasspath = antConfig
                 outputs.dir(artifactsDir)
             }
 
@@ -203,12 +220,8 @@ open class MpsPlugin @Inject constructor(
                 dependsOn(assembleMps)
                 group = "build"
                 description = "Runs tests in the MPS project."
-                script = "build.xml"
+
                 targets.set(listOf("check"))
-                scriptArgs.addAll(provider {
-                    listOf("-Dmps_home=${distLocation.get()}")
-                })
-                scriptClasspath = antConfig
             }
             tasks.named("check") { dependsOn(checkMps) }
 
@@ -246,7 +259,7 @@ open class MpsPlugin @Inject constructor(
         project: Project,
         generateBackendConfiguration: Configuration,
         buildModel: File?,
-        distLocation: Provider<File>,
+        mpsDefaults: MpsDefaultsExtension,
         setupTask: Any
     ): TaskProvider<JavaExec>? {
         if (buildModel == null) {
@@ -267,8 +280,9 @@ open class MpsPlugin @Inject constructor(
                 )
                 group = "build"
                 description = "Generate the Ant build script from ${buildModel.relativeToOrSelf(projectDir)}."
-                classpath(fileTree(distLocation.map { it.resolve("lib") }).include("**/*.jar"))
-                classpath(fileTree(distLocation.map { it.resolve("plugins") }).include("**/lib/**/*.jar"))
+
+                classpath(fileTree(mpsDefaults.mpsHome.map { it.dir("lib") }).include("**/*.jar"))
+                classpath(fileTree(mpsDefaults.mpsHome.map { it.dir("plugins") }).include("**/lib/**/*.jar"))
                 classpath(generateBackendConfiguration)
 
                 mainClass.set("de.itemis.mps.gradle.generate.MainKt")
@@ -277,12 +291,11 @@ open class MpsPlugin @Inject constructor(
                 inputs.files(projectDirExcludingBuildDir(project).include("**/*.msd", "**/*.mpl", "**/*.devkit"))
                     .ignoreEmptyDirectories()
                     .withPropertyName("module-files")
-                outputs.file("build.xml")
+                outputs.file(mpsDefaults.buildScript)
 
                 // Needed to avoid "URI is not hierarchical" exceptions
                 environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
             }
         }
     }
-
 }
