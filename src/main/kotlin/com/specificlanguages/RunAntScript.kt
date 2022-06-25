@@ -17,7 +17,7 @@ import org.gradle.process.JavaExecSpec
  * Runs an Ant script via [org.gradle.api.Project.javaexec]. The plugin configures some conventions for this task type
  * based on [MpsDefaultsExtension].
  */
-internal abstract class RunAntScript : DefaultTask() {
+abstract class RunAntScript : DefaultTask() {
     /**
      * The Ant build script. Defaults to [MpsDefaultsExtension.buildScript]
      */
