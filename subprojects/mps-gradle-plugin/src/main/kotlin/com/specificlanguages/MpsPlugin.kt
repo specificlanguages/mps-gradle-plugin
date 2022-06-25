@@ -16,6 +16,7 @@ import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.*
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 import java.io.File
 import javax.inject.Inject
 
@@ -202,7 +203,7 @@ open class MpsPlugin @Inject constructor(
 
                 from(assembleMps)
             }
-            tasks.named("assemble") { dependsOn(assembleMps) }
+            tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(assembleMps) }
 
             val checkMps = tasks.register("checkMps", RunAntScript::class) {
                 dependsOn(assembleMps)
@@ -211,7 +212,7 @@ open class MpsPlugin @Inject constructor(
 
                 targets.set(listOf("check"))
             }
-            tasks.named("check") { dependsOn(checkMps) }
+            tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(checkMps) }
 
             val defaultConfiguration = configurations["default"].apply {
                 extendsFrom(generationConfiguration)
