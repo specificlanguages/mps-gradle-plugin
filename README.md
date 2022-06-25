@@ -48,6 +48,23 @@ The following conventions are different from the defaults and require manual adj
 * Any dependencies will be put under `build/dependencies` folder and can be referenced from the project's base directory
   (without using any path variables).
 
+### Customizing Conventions
+
+Some conventions can be customized via the `mpsDefaults` extension:
+
+```kotlin
+mpsDefaults {
+    // Custom MPS home directory
+    mpsHome.set(File("/my/mps/home"))
+    
+    // Custom location and name of the build script
+    buildScript.set(file("build/build.xml"))
+    
+    // Custom dependencies directory
+    dependenciesDirectory.set("build/project-libraries")
+}
+```
+
 ## Sample Project
 
 A sample project using the plugin can be found here: https://github.com/specificlanguages/mps-gradle-plugin-sample.
@@ -60,11 +77,11 @@ All code snippets below use Kotlin syntax for Gradle.
 
     ```kotlin
     plugins {
-        id("com.specificlanguages.mps") version "1.3.0"
+        id("com.specificlanguages.mps") version "1.5.0"
     }
     ```
 
-2. Add the itemis mbeddr repository and the JCenter or Maven Central repository to the project:
+2. Add the itemis mbeddr repository and the Maven Central repository to the project:
 
    ```kotlin
    repositories {
@@ -75,7 +92,7 @@ All code snippets below use Kotlin syntax for Gradle.
 
    The itemis mbeddr repository is used to download MPS as well as a small runner program to launch MPS from the command
    line. (The launcher is part of [mps-build-backends](https://github.com/mbeddr/mps-build-backends).) Maven Central
-   and JCenter repositories contain the Kotlin libraries that the launcher depends on.
+   repository contains the Kotlin libraries that the launcher depends on.
 
 3. Use the `mps` configuration to specify the MPS version to use:
 
@@ -89,7 +106,7 @@ All code snippets below use Kotlin syntax for Gradle.
 
     ```kotlin
     dependencies {
-        "generation"("de.itemis.mps:extensions:2019.1.1093.4f96363")
+        "generation"("de.itemis.mps:extensions:2021.1.+")
     }
     ```
 
@@ -161,7 +178,7 @@ The plugin modifies the `clean` task to delete MPS-generated directories: `sourc
 `classes_gen`, `tests_gen`, and `tests_gen.caches`. This is in addition to the default operation of `clean` task which
 deletes the project's build directory (`build`).
 
-## Downloading and unzipping MPS
+## Downloading and Unzipping MPS
 
 Before version 1.4.0 the plugin declared a task, `resolveMpsForGeneration`, to download and unzip the MPS distribution
 under `build/mps`. In 1.4.0 and above this is handled via Gradle artifact transforms. This should enable sharing the
@@ -195,6 +212,8 @@ The plugin creates the following configurations:
 * `generation` - MPS libraries that the project depends on (such as mbeddr platform or MPS-extensions).
 * `executeGenerators` - can be used to override the version of the `execute-generators` backend. If left unconfigured,
   a reasonable default will be used.
+* `ant` - the Ant classpath. If left unconfigured, contains an `ant-junit` dependency. Can be customized if you 
+  need extra libraries on the Ant classpath.
 
 All dependencies added to `generation` configuration will have their artifact type set to `zip`. This is important for
 compatibility with Maven.
@@ -252,3 +271,21 @@ should not. However, if you find that Gradle is *NOT* rebuilding your project wh
 this](https://github.com/specificlanguages/mps-gradle-plugin/issues).
 
 You can do a clean build of the project by running `./gradlew clean build`.
+
+## `RunAntScript` Task Type
+
+The plugin exposes a task type to run Ant scripts, named `com.specificlanguages.RunAntScript`. This task can be used
+to run arbitrary targets of arbitrary Ant scripts. It is pre-configured with conventions when the plugin is applied, 
+to minimize the amount of necessary configuration.
+
+For example, you can create a Gradle task to invoke `myBuild.xml` and call target `myTarget`:
+```kotlin
+val myTarget by tasks.registering(RunAntScript::class) {
+    buildScript.set(file("myBuild.xml")) // default: mpsDefaults.buildScript
+    classpath.set(configurations.named("myAnt")) // default: 'ant' configuration
+    
+    antProperties.put("mps_home" to "/my/mps/home") // default: mps_home = mpsDefaults.mpsHome
+                                                    //          version  = project.version 
+    targets.set(listOf("myTarget")) // no default
+}
+```
