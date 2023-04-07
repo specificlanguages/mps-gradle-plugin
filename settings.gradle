@@ -1,1 +1,6 @@
 rootProject.name = 'mps-gradle-plugin'
+
+file('subprojects').eachDir {
+    include(":${it.name}")
+    project(":${it.name}").projectDir = it
+}
