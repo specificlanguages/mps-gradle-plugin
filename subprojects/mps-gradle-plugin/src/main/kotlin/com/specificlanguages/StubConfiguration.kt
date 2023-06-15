@@ -29,7 +29,7 @@ abstract class StubConfiguration(private val project: Project, private val name:
         return project.dependencies.add(configuration.name, notation)
     }
 
-    fun dependency(notation: Any, config: Closure<*>): Dependency {
+    fun dependency(notation: Any, config: Closure<*>): Dependency? {
         return project.dependencies.add(configuration.name, notation, config)
     }
 
