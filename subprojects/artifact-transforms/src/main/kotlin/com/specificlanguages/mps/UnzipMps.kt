@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.specificlanguages;
+package com.specificlanguages.mps;
 
 import org.gradle.api.artifacts.transform.InputArtifact
 import org.gradle.api.artifacts.transform.TransformAction
@@ -27,7 +27,7 @@ import org.gradle.kotlin.dsl.support.unzipTo
 /**
  * Unzips input artifact into 'mps' directory of the transformation outputs
  */
-internal abstract class UnzipMps : TransformAction<TransformParameters.None> {
+abstract class UnzipMps : TransformAction<TransformParameters.None> {
     @get:InputArtifact
     abstract val inputArtifact: Provider<FileSystemLocation>
 

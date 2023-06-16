@@ -1,9 +1,9 @@
 package com.specificlanguages
 
+import com.specificlanguages.mps.ArtifactTransforms
 import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ModuleDependency
-import org.gradle.api.attributes.Attribute
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.ConfigurableFileTree
@@ -76,10 +76,10 @@ open class MpsPlugin @Inject constructor(
 ) : Plugin<Project> {
 
     override fun apply(project: Project) {
-        val unzippedMpsArtifactType = "unzipped-mps-distribution"
 
         project.run {
             pluginManager.apply(BasePlugin::class)
+            pluginManager.apply(ArtifactTransforms::class)
 
             val stubs = objects.domainObjectContainer(StubConfiguration::class)
             extensions.add(typeOf<NamedDomainObjectContainer<StubConfiguration>>(), "stubs", stubs)
@@ -116,25 +116,13 @@ open class MpsPlugin @Inject constructor(
                 artifact { type = "zip" }
             }
 
-            val mpsConfiguration = configurations.register("mps") {
+            val mpsConfiguration = configurations.create("mps") {
                 isCanBeResolved = true
                 isCanBeConsumed = false
             }
 
-            val artifactType = Attribute.of("artifactType", String::class.java)
-
-            dependencies.registerTransform(UnzipMps::class) {
-                from.attribute(artifactType, "zip")
-                to.attribute(artifactType, unzippedMpsArtifactType)
-            }
-
             val mpsDefaults = extensions.create<MpsDefaultsExtension>("mpsDefaults").apply {
-                mpsHome.convention(layout.dir(mpsConfiguration.map {
-                    it.incoming
-                        .artifactView { attributes.attribute(artifactType, unzippedMpsArtifactType) }
-                        .files
-                        .singleFile
-                }))
+                mpsHome.convention(layout.dir(ArtifactTransforms.getMpsRoot(mpsConfiguration)))
 
                 buildScript.convention(layout.projectDirectory.file("build.xml"))
 
