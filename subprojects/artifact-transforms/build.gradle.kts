@@ -15,7 +15,7 @@ kotlin {
 
 gradlePlugin {
     plugins {
-        register("mpsPlugin") {
+        register("artifactTransforms") {
             id = "com.specificlanguages.mps.artifact-transforms"
             implementationClass = "com.specificlanguages.mps.ArtifactTransforms"
             displayName = "MPS Artifact Transforms"

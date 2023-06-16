@@ -19,7 +19,7 @@ kotlin {
 
 gradlePlugin {
     plugins {
-        register("mpsPlugin") {
+        register("mps") {
             id = "com.specificlanguages.mps"
             implementationClass = "com.specificlanguages.MpsPlugin"
             displayName = "MPS Build Plugin"

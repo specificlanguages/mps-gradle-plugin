@@ -21,3 +21,5 @@ gradlePlugin {
     website.set("https://specificlanguages.com")
     vcsUrl.set("https://github.com/specificlanguages/mps-gradle-plugin")
 }
+
+group = "com.specificlanguages"
