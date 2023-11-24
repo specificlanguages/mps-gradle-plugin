@@ -23,3 +23,7 @@ gradlePlugin {
 }
 
 group = "com.specificlanguages"
+
+repositories {
+    mavenCentral()
+}

@@ -5,7 +5,6 @@ plugins {
 version = "1.7.0"
 
 repositories {
-    mavenCentral()
     maven { url = uri("https://artifacts.itemis.cloud/repository/maven-mps/") }
 }
 

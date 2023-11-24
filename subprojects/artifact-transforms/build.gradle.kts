@@ -2,12 +2,7 @@ plugins {
     `plugin-conventions`
 }
 
-group = "com.specificlanguages"
 version = "1.0.0"
-
-repositories {
-    mavenCentral()
-}
 
 gradlePlugin {
     plugins {
