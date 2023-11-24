@@ -1,0 +1,39 @@
+public abstract interface class com/specificlanguages/MpsDefaultsExtension {
+	public abstract fun getBuildScript ()Lorg/gradle/api/file/RegularFileProperty;
+	public abstract fun getDependenciesDirectory ()Lorg/gradle/api/file/DirectoryProperty;
+	public abstract fun getMpsHome ()Lorg/gradle/api/file/DirectoryProperty;
+}
+
+public class com/specificlanguages/MpsPlugin : org/gradle/api/Plugin {
+	public fun <init> (Lorg/gradle/api/component/SoftwareComponentFactory;)V
+	public synthetic fun apply (Ljava/lang/Object;)V
+	public fun apply (Lorg/gradle/api/Project;)V
+}
+
+public abstract class com/specificlanguages/RunAntScript : org/gradle/api/DefaultTask {
+	public fun <init> ()V
+	public fun build ()V
+	public final fun configureJavaExec (Lorg/gradle/api/Action;)V
+	public abstract fun getAdditionalConfigurationActions ()Lorg/gradle/api/provider/ListProperty;
+	public abstract fun getAntProperties ()Lorg/gradle/api/provider/MapProperty;
+	public abstract fun getBuildScript ()Lorg/gradle/api/file/RegularFileProperty;
+	public abstract fun getClasspath ()Lorg/gradle/api/provider/Property;
+	public abstract fun getScriptArgs ()Lorg/gradle/api/provider/ListProperty;
+	public abstract fun getTargets ()Lorg/gradle/api/provider/ListProperty;
+}
+
+public abstract class com/specificlanguages/StubConfiguration : org/gradle/api/Named {
+	public fun <init> (Lorg/gradle/api/Project;Ljava/lang/String;)V
+	public final fun dependency (Ljava/lang/Object;)Lorg/gradle/api/artifacts/Dependency;
+	public final fun dependency (Ljava/lang/Object;Lgroovy/lang/Closure;)Lorg/gradle/api/artifacts/Dependency;
+	public final fun dependency (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/artifacts/ExternalModuleDependency;
+	public final fun dependency (Lorg/gradle/api/artifacts/ModuleDependency;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/artifacts/ModuleDependency;
+	public final fun destinationDir (Ljava/lang/Object;)V
+	public final fun getConfiguration ()Lorg/gradle/api/NamedDomainObjectProvider;
+	public abstract fun getDestinationDir ()Lorg/gradle/api/file/DirectoryProperty;
+	public fun getName ()Ljava/lang/String;
+	public final fun project (Ljava/lang/String;Ljava/lang/String;)Lorg/gradle/api/artifacts/ProjectDependency;
+	public final fun project (Ljava/util/Map;)Lorg/gradle/api/artifacts/Dependency;
+	public static synthetic fun project$default (Lcom/specificlanguages/StubConfiguration;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lorg/gradle/api/artifacts/ProjectDependency;
+}
+

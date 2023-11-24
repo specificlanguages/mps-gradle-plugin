@@ -2,6 +2,7 @@ plugins {
     java
     id("com.gradle.plugin-publish")
     id("org.gradle.kotlin.kotlin-dsl")
+    id("org.jetbrains.kotlinx.binary-compatibility-validator")
 }
 
 java {
