@@ -1,6 +1,7 @@
 package com.specificlanguages
 
 import com.specificlanguages.mps.ArtifactTransforms
+import de.itemis.mps.gradle.launcher.MpsBackendLauncher
 import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ModuleDependency
@@ -17,7 +18,6 @@ import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.*
 import java.io.File
 import javax.inject.Inject
-
 
 private fun findBuildModel(project: Project): File? =
         project.projectDir.walkBottomUp().firstOrNull { it.name == "build.mps" || it.name.endsWith(".build.mps") }
@@ -283,6 +283,10 @@ open class MpsPlugin @Inject constructor(
 
                 // Needed to avoid "URI is not hierarchical" exceptions
                 environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
+
+                MpsBackendLauncher(project.objects).builder()
+                    .withMpsHome(mpsDefaults.mpsHome.file("").get().asFile)
+                    .configure(this)
             }
         }
     }
