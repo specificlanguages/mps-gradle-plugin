@@ -2,15 +2,17 @@ plugins {
     `plugin-conventions`
 }
 
-version = "1.6.0"
+version = "1.7.0"
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://artifacts.itemis.cloud/repository/maven-mps/") }
 }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(project(":artifact-transforms"))
+    implementation("de.itemis.mps.build-backends:launcher:2.3.0.91.50c4cb7")
 }
 
 kotlin {
