@@ -9,10 +9,6 @@ repositories {
     mavenCentral()
 }
 
-kotlin {
-    jvmToolchain(8)
-}
-
 gradlePlugin {
     plugins {
         register("artifactTransforms") {

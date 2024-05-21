@@ -15,10 +15,6 @@ dependencies {
     implementation("de.itemis.mps.build-backends:launcher:2.3.0.91.50c4cb7")
 }
 
-kotlin {
-    jvmToolchain(8)
-}
-
 gradlePlugin {
     plugins {
         register("mps") {
