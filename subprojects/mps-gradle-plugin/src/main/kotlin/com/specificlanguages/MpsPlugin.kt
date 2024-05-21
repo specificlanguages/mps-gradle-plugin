@@ -68,7 +68,7 @@ private fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Tra
     }
 }
 
-private fun capitalize(s: String): String = s[0].toUpperCase() + s.substring(1)
+private fun capitalize(s: String): String = s[0].uppercaseChar() + s.substring(1)
 
 @Suppress("unused")
 open class MpsPlugin @Inject constructor(
@@ -235,7 +235,7 @@ open class MpsPlugin @Inject constructor(
         val projectDir = project.projectDir
         val projectTree = project.fileTree(projectDir)
 
-        val buildDir = project.buildDir
+        val buildDir = project.layout.buildDirectory.get().asFile
         if (buildDir.startsWith(projectDir)) {
             projectTree.exclude(buildDir.relativeTo(projectDir).path)
         }
