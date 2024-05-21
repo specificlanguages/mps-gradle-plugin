@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.6.0]
+## 1.6.0
 
 ### Added
 - Methods on `StubConfiguration` to create, add, and configure a project dependency.
@@ -13,7 +13,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - Corrected types of `StubConfiguration#dependency()` overloads.
 
-## [1.5.0]
+## 1.5.0
 
 ### Added
 - Officially expose and document the `com.specificlanguages.RunAntScript` task.
@@ -28,14 +28,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Task inputs for `generateBuildscript` and `assemble` previously included files under the project build directory. 
   These files are now correctly excluded.
 
-## [1.4.0]
+## 1.4.0
 
 ### Changed
 
 - Use Gradle artifact transforms for downloading and unzipping the MPS distribution to enable its sharing among 
   multiple projects.
 
-## [1.3.0]
+## 1.3.0
 
 ### Changed
 
