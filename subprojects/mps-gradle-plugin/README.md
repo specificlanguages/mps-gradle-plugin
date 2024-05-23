@@ -76,43 +76,67 @@ All code snippets below use Kotlin syntax for Gradle.
 1. Apply the plugin:
 
     ```kotlin
+   // build.gradle.kts
     plugins {
         id("com.specificlanguages.mps") version "1.5.0"
     }
     ```
 
-2. Add the itemis mbeddr repository and the Maven Central repository to the project:
+2. Add the itemis Nexus repository to `settings.gradle.kts`:
 
    ```kotlin
+   // settings.gradle.kts
+   pluginManagement {
+       repositories {
+           maven(url = "https://artifacts.itemis.cloud/repository/maven-mps")
+   
+           // Gradle plugin portal must be added explicitly when using non-default repositories
+           gradlePluginPortal()
+       }
+   }
+   ```
+
+   This repository is used to
+   download [mps-build-backends Gradle MPS launcher](https://github.com/mbeddr/mps-build-backends/tree/main/launcher)
+   that is used to provide proper command line arguments to the backend in the next step, depending on the MPS version
+   being run.
+
+3. Add the itemis Nexus repository and the Maven Central repository to the project:
+
+   ```kotlin
+   // build.gradle.kts
    repositories {
-       maven(url = "https://projects.itemis.de/nexus/content/repositories/mbeddr")
+       maven(url = "https://artifacts.itemis.cloud/repository/maven-mps")
        mavenCentral()
    }
    ```
 
-   The itemis mbeddr repository is used to download MPS as well as a small runner program to launch MPS from the command
-   line. (The launcher is part of [mps-build-backends](https://github.com/mbeddr/mps-build-backends).) Maven Central
-   repository contains the Kotlin libraries that the launcher depends on.
+   The itemis Nexus repository is used to download MPS as well as a small "backend" program to launch MPS from the
+   command line. (The backend is part of [mps-build-backends](https://github.com/mbeddr/mps-build-backends).) Maven
+   Central repository contains the Kotlin libraries that the backend depends on.
 
-3. Use the `mps` configuration to specify the MPS version to use:
+4. Use the `mps` configuration to specify the MPS version to use:
 
    ```kotlin
+   // build.gradle.kts
    dependencies {
        "mps"("com.jetbrains:mps:2021.1.4")
    }
    ```
 
-4. Include the dependencies necessary for generation into the `generation` configuration:
+5. Include the dependencies necessary for generation into the `generation` configuration:
 
     ```kotlin
+   // build.gradle.kts
     dependencies {
         "generation"("de.itemis.mps:extensions:2021.1.+")
     }
     ```
 
-5. (Since 1.2.0) Specify JAR dependencies that are used as stubs and where they should be placed:
+6. Specify JAR dependencies that are used as stubs and where they should be placed:
 
     ```kotlin
+   // build.gradle.kts
     stubs {
         register("stubs") {
             destinationDir("solutions/my.stubs/lib")
@@ -123,9 +147,10 @@ All code snippets below use Kotlin syntax for Gradle.
     }
     ```
 
-6. For publishing apply the `maven-publish` plugin and use `from(components["mps"])`:
+7. For publishing apply the `maven-publish` plugin and use `from(components["mps"])`:
 
    ```kotlin
+   // build.gradle.kts
    plugins {
        ...
        `maven-publish`
@@ -232,6 +257,7 @@ file (or equivalent).
 Configure the stubs as follows: 
 
 ```kotlin
+// build.gradle.kts
 stubs {
     register("myStubs") {
         destinationDir("solutions/my.stubs/lib")
@@ -266,7 +292,7 @@ ones. The following tasks specify their inputs:
 * `generateBuildscript` depends on the build model but also on all module files in the project (`*.msd`, `*.mpl`,
   `*.devkit`) since the generator checks the build model against the modules during generation.
 
-Getting the dependencies 100 % correct is difficult so it is possible that Gradle would build the project even if it 
+Getting the dependencies 100 % correct is difficult, so it is possible that Gradle would build the project even if it 
 should not. However, if you find that Gradle is *NOT* rebuilding your project when it should, please [report
 this](https://github.com/specificlanguages/mps-gradle-plugin/issues).
 
@@ -280,6 +306,7 @@ to minimize the amount of necessary configuration.
 
 For example, you can create a Gradle task to invoke `myBuild.xml` and call target `myTarget`:
 ```kotlin
+// build.gradle.kts
 val myTarget by tasks.registering(RunAntScript::class) {
     buildScript.set(file("myBuild.xml")) // default: mpsDefaults.buildScript
     classpath.set(configurations.named("myAnt")) // default: 'ant' configuration
