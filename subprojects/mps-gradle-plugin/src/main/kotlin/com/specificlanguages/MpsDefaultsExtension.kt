@@ -2,6 +2,8 @@ package com.specificlanguages
 
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
+import org.gradle.jvm.toolchain.JavaToolchainSpec
 
 /**
  * MPS defaults, registered with the project as an extension named `mps`.
@@ -22,4 +24,9 @@ interface MpsDefaultsExtension {
      * The directory where dependencies, will be unpacked. Defaults to `$buildDir/dependencies`
      */
     val dependenciesDirectory: DirectoryProperty
+
+    /**
+     * Java executable that [RunAntScript] will use by default to run Ant.
+     */
+    val javaExecutable: RegularFileProperty
 }

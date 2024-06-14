@@ -9,12 +9,15 @@ import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.ConfigurableFileTree
 import org.gradle.api.plugins.BasePlugin
+import org.gradle.api.plugins.JavaBasePlugin
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.bundling.Zip
+import org.gradle.jvm.toolchain.JavaToolchainService
 import org.gradle.kotlin.dsl.*
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import java.io.File
@@ -80,6 +83,7 @@ open class MpsPlugin @Inject constructor(
 
         project.run {
             pluginManager.apply(BasePlugin::class)
+            pluginManager.apply(JavaBasePlugin::class)
             pluginManager.apply(ArtifactTransforms::class)
 
             val stubs = objects.domainObjectContainer(StubConfiguration::class)
@@ -177,6 +181,7 @@ open class MpsPlugin @Inject constructor(
 
             tasks.withType(RunAntScript::class) {
                 buildScript.convention(mpsDefaults.buildScript)
+                javaExecutable.convention(mpsDefaults.javaExecutable)
                 antProperties.convention(project.provider {
                     mapOf("mps_home" to mpsDefaults.mpsHome.get().asFile.path,
                         "version" to project.version.toString())
@@ -286,6 +291,7 @@ open class MpsPlugin @Inject constructor(
                 environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
 
                 MpsBackendLauncher(project.objects).builder()
+                    .withJavaExecutable(mpsDefaults.javaExecutable.map { it.asFile.path })
                     .withMpsHome(mpsDefaults.mpsHome.asFile)
                     .configure(this)
             }

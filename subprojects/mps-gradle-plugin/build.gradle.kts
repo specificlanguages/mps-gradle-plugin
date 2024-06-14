@@ -2,7 +2,7 @@ plugins {
     `plugin-conventions`
 }
 
-version = "1.7.0"
+version = "1.8.0"
 
 repositories {
     maven { url = uri("https://artifacts.itemis.cloud/repository/maven-mps/") }

@@ -78,7 +78,7 @@ All code snippets below use Kotlin syntax for Gradle.
     ```kotlin
    // build.gradle.kts
     plugins {
-        id("com.specificlanguages.mps") version "1.5.0"
+        id("com.specificlanguages.mps") version "1.8.0"
     }
     ```
 

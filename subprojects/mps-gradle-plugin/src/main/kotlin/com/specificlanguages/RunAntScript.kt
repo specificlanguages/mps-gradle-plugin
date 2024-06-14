@@ -10,6 +10,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.JavaExecSpec
 
@@ -58,6 +59,9 @@ abstract class RunAntScript : DefaultTask() {
     @get:Input
     abstract val additionalConfigurationActions: ListProperty<Action<in JavaExecSpec>>
 
+    @get:Internal
+    abstract val javaExecutable: RegularFileProperty
+
     /**
      * Configure the Java execution of Ant. The action will be called after the internally used [JavaExecSpec] is
      * configured according to other properties. Actions are called in the order they are registered.
@@ -69,6 +73,10 @@ abstract class RunAntScript : DefaultTask() {
     @TaskAction
     open fun build() {
         project.javaexec {
+            val executableOrNull = javaExecutable.map { it.asFile.path }.orNull
+            if (executableOrNull != null) {
+                executable = executableOrNull
+            }
             mainClass.set("org.apache.tools.ant.launch.Launcher")
             workingDir = project.projectDir
             classpath = this@RunAntScript.classpath.get()
