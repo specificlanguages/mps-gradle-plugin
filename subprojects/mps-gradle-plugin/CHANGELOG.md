@@ -11,6 +11,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Support for specifying the default Java executable for running Ant (and MPS).
 
+### Changed
+
+- `generateBuildscripts` task now runs under MPS environment rather than IDEA to improve speed.
+
 ## 1.7.0
 
 ### Added

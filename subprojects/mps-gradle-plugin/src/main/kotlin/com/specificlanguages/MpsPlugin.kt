@@ -270,7 +270,8 @@ open class MpsPlugin @Inject constructor(
                 dependsOn(setupTask)
                 args(
                     "--project=${projectDir}",
-                    "--model=$buildModelName"
+                    "--model=$buildModelName",
+                    "--environment=MPS"
                 )
                 group = "build"
                 description = "Generate the Ant build script from ${buildModel.relativeToOrSelf(projectDir)}."
