@@ -19,6 +19,7 @@ public abstract class com/specificlanguages/RunAntScript : org/gradle/api/Defaul
 	public abstract fun getAntProperties ()Lorg/gradle/api/provider/MapProperty;
 	public abstract fun getBuildScript ()Lorg/gradle/api/file/RegularFileProperty;
 	public abstract fun getClasspath ()Lorg/gradle/api/provider/Property;
+	protected abstract fun getExecOperations ()Lorg/gradle/process/ExecOperations;
 	public abstract fun getJavaExecutable ()Lorg/gradle/api/file/RegularFileProperty;
 	public abstract fun getScriptArgs ()Lorg/gradle/api/provider/ListProperty;
 	public abstract fun getTargets ()Lorg/gradle/api/provider/ListProperty;

@@ -12,7 +12,9 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
+import org.gradle.process.ExecOperations
 import org.gradle.process.JavaExecSpec
+import javax.inject.Inject
 
 /**
  * Runs an Ant script via [org.gradle.api.Project.javaexec]. The plugin configures some conventions for this task type
@@ -62,6 +64,9 @@ abstract class RunAntScript : DefaultTask() {
     @get:Internal
     abstract val javaExecutable: RegularFileProperty
 
+    @get:Inject
+    protected abstract val execOperations: ExecOperations
+
     /**
      * Configure the Java execution of Ant. The action will be called after the internally used [JavaExecSpec] is
      * configured according to other properties. Actions are called in the order they are registered.
@@ -72,7 +77,7 @@ abstract class RunAntScript : DefaultTask() {
 
     @TaskAction
     open fun build() {
-        project.javaexec {
+        execOperations.javaexec {
             val executableOrNull = javaExecutable.map { it.asFile.path }.orNull
             if (executableOrNull != null) {
                 executable = executableOrNull
