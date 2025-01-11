@@ -61,8 +61,8 @@ private fun allGeneratedDirs(root : File): Sequence<File> {
     }
 }
 
-private fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Transformer<String, String> {
-    return Transformer { filename ->
+private fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Transformer<String?, String> =
+    Transformer { filename ->
         val ra = config.get().resolvedConfiguration.resolvedArtifacts.find { ra -> ra.file.name == filename }!!
         if (ra.classifier != null) {
             "${ra.name}-${ra.classifier}.${ra.extension}"
@@ -70,7 +70,6 @@ private fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Tra
             "${ra.name}.${ra.extension}"
         }
     }
-}
 
 private fun capitalize(s: String): String = s[0].uppercaseChar() + s.substring(1)
 
