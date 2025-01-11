@@ -1,0 +1,28 @@
+name: Test jbr-toolchain
+
+on:
+  push:
+    paths:
+      - 'buildSrc/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'subprojects/jbr-toolchain/**'
+      - '.github/workflows/jbr-toolchain.yml'
+
+jobs:
+  build:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: jetbrains
+          java-version: 17
+      - name: Build
+        run: ./gradlew :jbr-toolchain:build
