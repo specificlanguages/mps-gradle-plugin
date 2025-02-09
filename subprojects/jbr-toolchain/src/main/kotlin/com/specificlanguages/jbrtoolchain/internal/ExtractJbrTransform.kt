@@ -48,10 +48,6 @@ abstract class ExtractJbrTransform : TransformAction<TransformParameters.None> {
                     relativePath = RelativePath(relativeSourcePath.isFile, *relativeSourcePath.segments.drop(1).toTypedArray())
                 }
                 includeEmptyDirs = false
-
-                filesMatching("jbr_*/**") {
-                    path = path.replace("jbr_(.*?)/(.*)".toRegex(), "jbr/$2")
-                }
             }
         }
     }

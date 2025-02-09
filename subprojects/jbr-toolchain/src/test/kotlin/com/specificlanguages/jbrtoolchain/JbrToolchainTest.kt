@@ -1,28 +1,26 @@
 package com.specificlanguages.jbrtoolchain
 
+import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.Matchers.containsString
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
 class JbrToolchainTest {
     companion object {
-        private const val JBR_BUILD = "11.0.10+9-b1341.41"
-        private const val JBR_VERSION = "11_0_10-b1341.41"
+        private const val JBR_BUILD = "17.0.6+7-469.82"
+        private const val JBR_VERSION = "17.0.6-b469.82"
     }
 
     @Test
     fun canRunJava(@TempDir testProjectDir: File) {
-        val settingsFile = testProjectDir.resolve("settings.gradle.kts")
-        val buildFile = testProjectDir.resolve("build.gradle.kts")
-
-        settingsFile.writeText("")
-
-        buildFile.writeText("""
+        testProjectDir.resolve("build.gradle.kts").writeText(
+            """
             plugins {
                 id("com.specificlanguages.jbr-toolchain")
             }
@@ -38,7 +36,8 @@ class JbrToolchainTest {
                 jvmArgs("-version")
                 mainClass = "dummy"
             }
-        """.trimIndent())
+            """.trimIndent()
+        )
 
         val task = ":javaVersion"
         val result = GradleRunner.create()
@@ -58,7 +57,6 @@ class JbrToolchainTest {
         val projectDirs = listOf(project1Dir, project2Dir)
 
         for (dir in projectDirs) {
-            dir.resolve("settings.gradle.kts").writeText("")
             dir.resolve("build.gradle.kts").writeText(
                 """
                 plugins {
@@ -78,7 +76,7 @@ class JbrToolchainTest {
                 
                     }
                 }
-            """.trimIndent()
+                """.trimIndent()
             )
         }
 
@@ -100,4 +98,78 @@ class JbrToolchainTest {
         assertEquals(javaHomes[0], javaHomes[1], "Java home should be the same in both projects")
     }
 
+    @Test
+    fun errorMessageWhenEmpty() {
+        val project = ProjectBuilder.builder().build()
+        project.pluginManager.apply(JbrToolchainPlugin::class.java)
+
+        val jbrToolchain = project.extensions.getByType(JbrToolchainExtension::class.java)
+
+        val exception = assertThrows(IllegalStateException::class.java) { jbrToolchain.javaLauncher.get() }
+
+        assertThat(
+            exception.message,
+            containsString("Make sure you add a dependency on the appropriate JetBrains Runtime to the 'jbr' configuration.")
+        )
+    }
+
+    @Test
+    @Disabled("fails due to a Gradle 8.12 bug: https://github.com/gradle/gradle/issues/31862")
+    fun errorMessageWhenSeveral() {
+        val project = ProjectBuilder.builder().build()
+        project.pluginManager.apply(JbrToolchainPlugin::class.java)
+        project.dependencies.add("jbr", "com.jetbrains.jdk:jbr_jcef:$JBR_VERSION")
+        project.dependencies.add("jbr", "com.jetbrains.jdk:jbr:$JBR_VERSION")
+
+        project.repositories.maven {
+            url = project.uri("https://artifacts.itemis.cloud/repository/maven-mps")
+        }
+
+        val jbrToolchain = project.extensions.getByType(JbrToolchainExtension::class.java)
+
+        val exception = assertThrows(IllegalStateException::class.java) { jbrToolchain.javaLauncher.get() }
+
+        assertThat(
+            exception.message,
+            containsString("Make sure you only add a single dependency to the 'jbr' configuration.")
+        )
+    }
+
+    @Test
+    fun errorMessageWhenSeveralDependenciesIntegrationTest(@TempDir testProjectDir: File) {
+        // Replace with the test above once gradle/gradle#31862 is fixed.
+        testProjectDir.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                id("com.specificlanguages.jbr-toolchain")
+            }
+
+            dependencies {
+                jbr("com.jetbrains.jdk:jbr_jcef:$JBR_VERSION")
+                jbr("com.jetbrains.jdk:jbr:$JBR_VERSION")
+            }
+
+            repositories.maven("https://artifacts.itemis.cloud/repository/maven-mps")
+
+            val javaVersion by tasks.registering(JavaExec::class) {
+                javaLauncher = jbrToolchain.javaLauncher
+                jvmArgs("-version")
+                mainClass = "dummy"
+            }
+            """.trimIndent()
+        )
+
+        val task = ":javaVersion"
+        val result = GradleRunner.create()
+            .withProjectDir(testProjectDir)
+            .withArguments(task)
+            .withPluginClasspath()
+            .buildAndFail()
+
+        assertEquals(TaskOutcome.FAILED, result.task(task)?.outcome)
+        assertThat(
+            result.output,
+            containsString("Make sure you only add a single dependency to the 'jbr' configuration.")
+        )
+    }
 }

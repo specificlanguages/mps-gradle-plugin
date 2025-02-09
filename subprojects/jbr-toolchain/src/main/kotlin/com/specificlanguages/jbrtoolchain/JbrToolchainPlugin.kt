@@ -5,6 +5,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition
+import org.gradle.api.file.FileCollection
 import org.gradle.jvm.toolchain.internal.SpecificInstallationToolchainSpec
 import java.io.File
 
@@ -17,14 +18,29 @@ abstract class JbrToolchainPlugin : Plugin<Project> {
         private const val OSX = "osx"
     }
 
-    private fun getExtractedDirectory(config: Configuration): File = config.incoming
-        .artifactView {
-            attributes.attribute(
-                ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
-                EXTRACT_JBR_TO_ARTIFACT_TYPE
-            )
+    private fun checkSingleFileInJbrConfiguration(files: FileCollection): File {
+        val iterator = files.iterator()
+
+        check(iterator.hasNext()) {
+            "Expected configuration 'jbr' to contain exactly one file, however, it contains no files. " +
+                    "Make sure you add a dependency on the appropriate JetBrains Runtime to the 'jbr' configuration."
         }
-        .files.singleFile
+
+        val singleFile = iterator.next()
+
+        check(!iterator.hasNext()) {
+            "Expected configuration 'jbr' to contain exactly one file, however, it contains no files. " +
+                    "Make sure you only add a single dependency to the 'jbr' configuration."
+        }
+
+        return singleFile!!
+    }
+
+    private fun getExtractedDirectory(config: Configuration): File = checkSingleFileInJbrConfiguration(
+        config.incoming.artifactView {
+            attributes.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, EXTRACT_JBR_TO_ARTIFACT_TYPE)
+        }.files
+    )
 
     private fun getJavaHomeFromExtractedDirectory(os: String, root: File) =
         when (os) {
