@@ -2,11 +2,12 @@ public abstract interface class com/specificlanguages/MpsDefaultsExtension {
 	public abstract fun getBuildScript ()Lorg/gradle/api/file/RegularFileProperty;
 	public abstract fun getDependenciesDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 	public abstract fun getJavaExecutable ()Lorg/gradle/api/file/RegularFileProperty;
+	public abstract fun getJavaLauncher ()Lorg/gradle/api/provider/Property;
 	public abstract fun getMpsHome ()Lorg/gradle/api/file/DirectoryProperty;
 }
 
 public class com/specificlanguages/MpsPlugin : org/gradle/api/Plugin {
-	public fun <init> (Lorg/gradle/api/component/SoftwareComponentFactory;)V
+	public fun <init> (Lorg/gradle/api/component/SoftwareComponentFactory;Lorg/gradle/jvm/toolchain/JavaToolchainService;)V
 	public synthetic fun apply (Ljava/lang/Object;)V
 	public fun apply (Lorg/gradle/api/Project;)V
 }

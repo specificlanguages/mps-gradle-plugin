@@ -10,7 +10,6 @@ import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.ConfigurableFileTree
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.plugins.JavaBasePlugin
-import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.JavaExec
@@ -75,11 +74,11 @@ private fun capitalize(s: String): String = s[0].uppercaseChar() + s.substring(1
 
 @Suppress("unused")
 open class MpsPlugin @Inject constructor(
-    private val softwareComponentFactory: SoftwareComponentFactory
+    private val softwareComponentFactory: SoftwareComponentFactory,
+    private val toolchains: JavaToolchainService
 ) : Plugin<Project> {
 
     override fun apply(project: Project) {
-
         project.run {
             pluginManager.apply(BasePlugin::class)
             pluginManager.apply(JavaBasePlugin::class)
@@ -131,6 +130,9 @@ open class MpsPlugin @Inject constructor(
                 buildScript.convention(layout.projectDirectory.file("build.xml"))
 
                 dependenciesDirectory.convention(layout.buildDirectory.dir("dependencies"))
+
+                javaExecutable.convention(javaLauncher.map { it.executablePath })
+                javaLauncher.convention(toolchains.launcherFor {  })
             }
 
             syncTasks.add(tasks.register("resolveGenerationDependencies", Sync::class) {
