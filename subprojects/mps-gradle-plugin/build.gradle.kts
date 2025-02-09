@@ -9,7 +9,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(project(":artifact-transforms"))
-    implementation("de.itemis.mps.build-backends:launcher:2.3.0.91.50c4cb7")
+    implementation("de.itemis.mps.build-backends:launcher:2.5.2.120.c791da5")
 }
 
 gradlePlugin {
