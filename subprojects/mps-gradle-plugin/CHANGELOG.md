@@ -12,6 +12,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `mpsDefaults.javaLauncher` to specify the Java executable for MPS in a more modern way and support
   the `com.specificlanguages.jbr-toolchain` plugin.
 
+### Deprecated
+
+- The `javaExecutable` property added in the previous version is deprecated in favor of the new `javaLauncher` property.
+
 ## 1.8.0
 
 ### Added

@@ -31,6 +31,7 @@ interface MpsDefaultsExtension {
      *
      * Prefer [javaLauncher] over [javaExecutable]. Setting [javaExecutable] overrides [javaLauncher].
      */
+    @Deprecated("prefer javaLauncher")
     val javaExecutable: RegularFileProperty
 
     /**

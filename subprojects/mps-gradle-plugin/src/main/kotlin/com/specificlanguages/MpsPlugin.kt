@@ -72,7 +72,7 @@ private fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Tra
 
 private fun capitalize(s: String): String = s[0].uppercaseChar() + s.substring(1)
 
-@Suppress("unused")
+@Suppress("unused", "DEPRECATION")
 open class MpsPlugin @Inject constructor(
     private val softwareComponentFactory: SoftwareComponentFactory,
     private val toolchains: JavaToolchainService
