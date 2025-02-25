@@ -8,6 +8,7 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 import org.gradle.api.file.FileCollection
 import org.gradle.jvm.toolchain.internal.SpecificInstallationToolchainSpec
 import java.io.File
+import javax.inject.Inject
 
 abstract class JbrToolchainPlugin : Plugin<Project> {
 
@@ -70,9 +71,10 @@ abstract class JbrToolchainPlugin : Plugin<Project> {
                 to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, EXTRACT_JBR_TO_ARTIFACT_TYPE)
             }
 
+            val toolchainSpecFactory = objects.newInstance(ToolchainSpecFactory::class.java)
             val jbrSpec = jbrConfig.map {
                 val javaHome = getJavaHomeFromExtractedDirectory(os, getExtractedDirectory(it))
-                SpecificInstallationToolchainSpec.fromJavaHome(objects, javaHome)
+                toolchainSpecFactory.fromJavaHome(javaHome)
             }
 
             extensions.create("jbrToolchain", JbrToolchainExtension::class.java, jbrSpec)

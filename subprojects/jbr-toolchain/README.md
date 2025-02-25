@@ -7,7 +7,7 @@ a [JVM toolchain](https://docs.gradle.org/current/userguide/toolchains.html).
 
 ```kotlin
 plugins {
-    id("com.specificlanguages.jbr-toolchain") version "1.0.0"
+    id("com.specificlanguages.jbr-toolchain") version "1.0.2"
 }
 
 dependencies {
