@@ -149,13 +149,6 @@ open class MpsPlugin @Inject constructor(
                 description = "Sets up the project so that it can be opened in MPS."
             }
 
-            // Deprecated, remove in 2.0
-            tasks.register("resolveMpsForGeneration") {
-                doLast {
-                    logger.warn("${name} is deprecated since mps-gradle-plugin version 1.4.0 and will be removed in version 2")
-                }
-            }
-
             val buildModel = findBuildModel(this)
 
             val executeGeneratorsConfiguration = configurations.create("executeGenerators") {
