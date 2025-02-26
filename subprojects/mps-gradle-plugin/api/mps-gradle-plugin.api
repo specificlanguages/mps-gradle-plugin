@@ -7,7 +7,6 @@ public final class com/specificlanguages/MpsBasePlugin : org/gradle/api/Plugin {
 public abstract interface class com/specificlanguages/MpsDefaultsExtension {
 	public abstract fun getBuildScript ()Lorg/gradle/api/file/RegularFileProperty;
 	public abstract fun getDependenciesDirectory ()Lorg/gradle/api/file/DirectoryProperty;
-	public abstract fun getJavaExecutable ()Lorg/gradle/api/file/RegularFileProperty;
 	public abstract fun getJavaLauncher ()Lorg/gradle/api/provider/Property;
 	public abstract fun getMpsHome ()Lorg/gradle/api/file/DirectoryProperty;
 }

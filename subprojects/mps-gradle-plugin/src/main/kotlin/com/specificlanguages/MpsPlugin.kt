@@ -123,8 +123,6 @@ open class MpsPlugin @Inject constructor(
                 mpsHome.convention(layout.dir(ArtifactTransforms.getMpsRoot(configurations["mps"])))
                 buildScript.convention(layout.projectDirectory.file("build.xml"))
                 dependenciesDirectory.convention(layout.buildDirectory.dir("dependencies"))
-
-                javaExecutable.convention(javaLauncher.map { it.executablePath })
                 javaLauncher.convention(toolchains.launcherFor {  })
             }
 
@@ -277,7 +275,7 @@ open class MpsPlugin @Inject constructor(
                 environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
 
                 MpsBackendLauncher(project.objects).builder()
-                    .withJavaExecutable(mpsDefaults.javaExecutable.map { it.asFile.path })
+                    .withJavaLauncher(mpsDefaults.javaLauncher)
                     .withMpsHome(mpsDefaults.mpsHome.asFile)
                     .configure(this)
             }
