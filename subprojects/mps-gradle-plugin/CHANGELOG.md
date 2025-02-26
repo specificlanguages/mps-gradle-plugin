@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.0-pre1
+
+Breaking changes are to be expected until the final 2.0.0 release.
+
+### Added
+
+- `com.specificlanguages.mps-base` plugin to only provide tasks and define the attribute schema but no magic
+  configuration.
+
+### Changed
+
+- 🚨 `RunAntScript` renamed to `RunAnt` and changed to use modern Gradle features: lazy properties, `JavaLauncher` for
+  specifying the JVM to use, etc.
+- `com.specificlanguages.mps` plugin no longer applies `java-base` plugin.
+
+### Removed
+
+- `mpsDefaults.javaExecutable` (previously deprecated in favor of `mpsDefaults.javaLauncher`).
+
 ## 1.9.0
 
 ### Added
