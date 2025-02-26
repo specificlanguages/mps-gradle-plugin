@@ -16,11 +16,6 @@ interface MpsDefaultsExtension {
     val mpsHome: DirectoryProperty
 
     /**
-     * The build script to run. Defaults to `build.xml` in the project directory.
-     */
-    val buildScript: RegularFileProperty
-
-    /**
      * The directory where dependencies will be unpacked. Defaults to `$buildDir/dependencies`
      */
     val dependenciesDirectory: DirectoryProperty

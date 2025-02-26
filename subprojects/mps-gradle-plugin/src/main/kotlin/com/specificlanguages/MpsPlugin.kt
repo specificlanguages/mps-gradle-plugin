@@ -120,7 +120,6 @@ open class MpsPlugin @Inject constructor(
 
             val mpsDefaults = extensions.create<MpsDefaultsExtension>("mpsDefaults").apply {
                 mpsHome.convention(layout.dir(ArtifactTransforms.getMpsRoot(configurations["mps"])))
-                buildScript.convention(layout.projectDirectory.file("build.xml"))
                 dependenciesDirectory.convention(layout.buildDirectory.dir("dependencies"))
                 javaLauncher.convention(toolchains.launcherFor {  })
             }
@@ -147,14 +146,6 @@ open class MpsPlugin @Inject constructor(
                 }
             }
 
-            val generateBuildscriptTask = maybeRegisterGenerateBuildscriptTask(
-                project,
-                executeGeneratorsConfiguration,
-                buildModel,
-                mpsDefaults,
-                setupTask
-            )
-
             val antConfig = configurations.register("ant") {
                 defaultDependencies {
                     add(project.dependencies.create("org.apache.ant:ant-junit:1.10.12"))
@@ -164,7 +155,6 @@ open class MpsPlugin @Inject constructor(
             val artifactsDir = layout.buildDirectory.dir("artifacts")
 
             tasks.withType(RunAnt::class) {
-                buildFile.convention(mpsDefaults.buildScript)
                 javaLauncher.convention(mpsDefaults.javaLauncher)
                 pathProperties.put("mps_home", mpsDefaults.mpsHome.asFile)
                 valueProperties.put("version", provider { project.version.toString() })
@@ -172,7 +162,7 @@ open class MpsPlugin @Inject constructor(
             }
 
             val assembleMps = tasks.register("assembleMps", RunAnt::class) {
-                dependsOn(generateBuildscriptTask ?: setupTask)
+                dependsOn(setupTask)
                 group = "build"
                 description = "Assembles the MPS project."
 
@@ -235,6 +225,7 @@ open class MpsPlugin @Inject constructor(
         project: Project,
         generateBackendConfiguration: Configuration,
         buildModel: File?,
+        outputAntScript: File,
         mpsDefaults: MpsDefaultsExtension,
         setupTask: Any
     ): TaskProvider<JavaExec>? {
@@ -268,7 +259,7 @@ open class MpsPlugin @Inject constructor(
                 inputs.files(projectDirExcludingBuildDir(project).include("**/*.msd", "**/*.mpl", "**/*.devkit"))
                     .ignoreEmptyDirectories()
                     .withPropertyName("module-files")
-                outputs.file(mpsDefaults.buildScript)
+                outputs.file(outputAntScript)
 
                 // Needed to avoid "URI is not hierarchical" exceptions
                 environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
