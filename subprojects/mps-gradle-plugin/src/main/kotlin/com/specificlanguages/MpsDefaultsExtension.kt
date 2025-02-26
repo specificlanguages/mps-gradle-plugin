@@ -22,7 +22,7 @@ interface MpsDefaultsExtension {
     val buildScript: RegularFileProperty
 
     /**
-     * The directory where dependencies, will be unpacked. Defaults to `$buildDir/dependencies`
+     * The directory where dependencies will be unpacked. Defaults to `$buildDir/dependencies`
      */
     val dependenciesDirectory: DirectoryProperty
 
