@@ -81,7 +81,6 @@ open class MpsPlugin @Inject constructor(
     override fun apply(project: Project) {
         project.run {
             pluginManager.apply(BasePlugin::class)
-            pluginManager.apply(JavaBasePlugin::class)
             pluginManager.apply(MpsBasePlugin::class)
 
             val stubs = objects.domainObjectContainer(StubConfiguration::class)
