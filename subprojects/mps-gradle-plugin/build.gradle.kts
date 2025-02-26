@@ -9,6 +9,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(project(":artifact-transforms"))
+    implementation(project(":jbr-toolchain"))
     implementation("de.itemis.mps.build-backends:launcher:2.5.2.120.c791da5")
 }
 
@@ -19,6 +20,13 @@ gradlePlugin {
             implementationClass = "com.specificlanguages.MpsPlugin"
             displayName = "MPS Build Plugin"
             description = "Builds JetBrains MPS projects using a simple declarative configuration model"
+            tags.set(listOf("jetbrainsMps"))
+        }
+        register("mpsBase") {
+            id = "com.specificlanguages.mps-base"
+            implementationClass = "com.specificlanguages.MpsBasePlugin"
+            displayName = "MPS Base Plugin"
+            description = "Tasks for building JetBrains MPS projects."
             tags.set(listOf("jetbrainsMps"))
         }
     }

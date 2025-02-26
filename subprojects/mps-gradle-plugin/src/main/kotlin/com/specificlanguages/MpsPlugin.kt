@@ -82,7 +82,7 @@ open class MpsPlugin @Inject constructor(
         project.run {
             pluginManager.apply(BasePlugin::class)
             pluginManager.apply(JavaBasePlugin::class)
-            pluginManager.apply(ArtifactTransforms::class)
+            pluginManager.apply(MpsBasePlugin::class)
 
             val stubs = objects.domainObjectContainer(StubConfiguration::class)
             extensions.add(typeOf<NamedDomainObjectContainer<StubConfiguration>>(), "stubs", stubs)
@@ -119,16 +119,9 @@ open class MpsPlugin @Inject constructor(
                 artifact { type = "zip" }
             }
 
-            val mpsConfiguration = configurations.create("mps") {
-                isCanBeResolved = true
-                isCanBeConsumed = false
-            }
-
             val mpsDefaults = extensions.create<MpsDefaultsExtension>("mpsDefaults").apply {
-                mpsHome.convention(layout.dir(ArtifactTransforms.getMpsRoot(mpsConfiguration)))
-
+                mpsHome.convention(layout.dir(ArtifactTransforms.getMpsRoot(configurations["mps"])))
                 buildScript.convention(layout.projectDirectory.file("build.xml"))
-
                 dependenciesDirectory.convention(layout.buildDirectory.dir("dependencies"))
 
                 javaExecutable.convention(javaLauncher.map { it.executablePath })
