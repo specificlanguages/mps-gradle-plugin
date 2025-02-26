@@ -173,17 +173,15 @@ open class MpsPlugin @Inject constructor(
 
             val artifactsDir = layout.buildDirectory.dir("artifacts")
 
-            tasks.withType(RunAntScript::class) {
-                buildScript.convention(mpsDefaults.buildScript)
-                javaExecutable.convention(mpsDefaults.javaExecutable)
-                antProperties.convention(project.provider {
-                    mapOf("mps_home" to mpsDefaults.mpsHome.get().asFile.path,
-                        "version" to project.version.toString())
-                })
+            tasks.withType(RunAnt::class) {
+                buildFile.convention(mpsDefaults.buildScript)
+                javaLauncher.convention(mpsDefaults.javaLauncher)
+                pathProperties.put("mps_home", mpsDefaults.mpsHome.asFile)
+                valueProperties.put("version", provider { project.version.toString() })
                 classpath.convention(antConfig)
             }
 
-            val assembleMps = tasks.register("assembleMps", RunAntScript::class) {
+            val assembleMps = tasks.register("assembleMps", RunAnt::class) {
                 dependsOn(generateBuildscriptTask ?: setupTask)
                 group = "build"
                 description = "Assembles the MPS project."
@@ -204,7 +202,7 @@ open class MpsPlugin @Inject constructor(
             }
             tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(assembleMps) }
 
-            val checkMps = tasks.register("checkMps", RunAntScript::class) {
+            val checkMps = tasks.register("checkMps", RunAnt::class) {
                 dependsOn(assembleMps)
                 group = "build"
                 description = "Runs tests in the MPS project."

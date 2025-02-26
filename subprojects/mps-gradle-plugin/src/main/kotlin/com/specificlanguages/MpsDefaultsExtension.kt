@@ -35,7 +35,7 @@ interface MpsDefaultsExtension {
     val javaExecutable: RegularFileProperty
 
     /**
-     * Java executable that [RunAntScript] will use by default to run Ant.
+     * Java executable that [RunAnt] will use by default to run Ant.
      *
      * Prefer [javaLauncher] over [javaExecutable]. Setting [javaExecutable] overrides [javaLauncher].
      */

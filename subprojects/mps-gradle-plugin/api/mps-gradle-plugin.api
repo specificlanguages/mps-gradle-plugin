@@ -12,18 +12,21 @@ public class com/specificlanguages/MpsPlugin : org/gradle/api/Plugin {
 	public fun apply (Lorg/gradle/api/Project;)V
 }
 
-public abstract class com/specificlanguages/RunAntScript : org/gradle/api/DefaultTask {
+public abstract class com/specificlanguages/RunAnt : org/gradle/api/DefaultTask {
 	public fun <init> ()V
-	public fun build ()V
-	public final fun configureJavaExec (Lorg/gradle/api/Action;)V
-	public abstract fun getAdditionalConfigurationActions ()Lorg/gradle/api/provider/ListProperty;
-	public abstract fun getAntProperties ()Lorg/gradle/api/provider/MapProperty;
-	public abstract fun getBuildScript ()Lorg/gradle/api/file/RegularFileProperty;
-	public abstract fun getClasspath ()Lorg/gradle/api/provider/Property;
+	public final fun build ()V
+	public abstract fun getBuildFile ()Lorg/gradle/api/file/RegularFileProperty;
+	public abstract fun getClasspath ()Lorg/gradle/api/file/ConfigurableFileCollection;
+	public abstract fun getEnvironment ()Lorg/gradle/api/provider/MapProperty;
 	protected abstract fun getExecOperations ()Lorg/gradle/process/ExecOperations;
-	public abstract fun getJavaExecutable ()Lorg/gradle/api/file/RegularFileProperty;
-	public abstract fun getScriptArgs ()Lorg/gradle/api/provider/ListProperty;
+	public abstract fun getJavaLauncher ()Lorg/gradle/api/provider/Property;
+	public abstract fun getJvmArguments ()Lorg/gradle/api/provider/ListProperty;
+	public abstract fun getOptions ()Lorg/gradle/api/provider/ListProperty;
+	public abstract fun getPathProperties ()Lorg/gradle/api/provider/MapProperty;
 	public abstract fun getTargets ()Lorg/gradle/api/provider/ListProperty;
+	protected abstract fun getToolchains ()Lorg/gradle/jvm/toolchain/JavaToolchainService;
+	public abstract fun getValueProperties ()Lorg/gradle/api/provider/MapProperty;
+	public abstract fun getWorkingDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 }
 
 public abstract class com/specificlanguages/StubConfiguration : org/gradle/api/Named {
