@@ -1,17 +1,20 @@
 package com.specificlanguages
 
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.jvm.toolchain.JavaLauncher
+import java.io.File
 
 /**
  * MPS defaults, registered with the project as an extension named `mps`.
  */
 interface MpsDefaultsExtension {
     /**
-     * The home directory of MPS. By default (convention) will be set to the directory where the resolved artifact of
-     * `mps` configuration is unpacked.
+     * The home directory of MPS. By default (convention) will be set to the single directory in the `mpsHome`
+     * configuration.
      */
     val mpsHome: DirectoryProperty
 
@@ -24,4 +27,14 @@ interface MpsDefaultsExtension {
      * Java executable that [RunAnt] will use by default to run Ant.
      */
     val javaLauncher: Property<JavaLauncher>
+
+    /**
+     * Path variables/folder macros, added to both [RunAnt.pathProperties] and [GenerateBuildScripts.pathVariables].
+     */
+    val pathVariables: MapProperty<String, File>
+
+    /**
+     * Ant classpath to use for [RunAnt]. The default is `[mpsHome]/lib/ant/lib/\*.jar`, excluding `ant-mps.jar`.
+     */
+     val antClasspath: ConfigurableFileCollection
 }

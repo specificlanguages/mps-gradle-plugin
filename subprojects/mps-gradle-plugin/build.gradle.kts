@@ -19,14 +19,7 @@ gradlePlugin {
             id = "com.specificlanguages.mps"
             implementationClass = "com.specificlanguages.MpsPlugin"
             displayName = "MPS Build Plugin"
-            description = "Builds JetBrains MPS projects using a simple declarative configuration model"
-            tags.set(listOf("jetbrainsMps"))
-        }
-        register("mpsBase") {
-            id = "com.specificlanguages.mps-base"
-            implementationClass = "com.specificlanguages.MpsBasePlugin"
-            displayName = "MPS Base Plugin"
-            description = "Tasks for building JetBrains MPS projects."
+            description = "Build JetBrains MPS projects using a simple declarative configuration model"
             tags.set(listOf("jetbrainsMps"))
         }
     }

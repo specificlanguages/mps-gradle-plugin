@@ -1,47 +1,40 @@
 package com.specificlanguages
 
+import com.specificlanguages.jbrtoolchain.JbrToolchainExtension
+import com.specificlanguages.jbrtoolchain.JbrToolchainPlugin
 import com.specificlanguages.mps.ArtifactTransforms
-import de.itemis.mps.gradle.launcher.MpsBackendLauncher
 import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.ModuleDependency
+import org.gradle.api.artifacts.ConfigurationContainer
+import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 import org.gradle.api.attributes.Usage
+import org.gradle.api.component.SoftwareComponentContainer
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.ConfigurableFileTree
+import org.gradle.api.file.Directory
+import org.gradle.api.file.ProjectLayout
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.BasePlugin
-import org.gradle.api.plugins.JavaBasePlugin
+import org.gradle.api.plugins.ExtensionContainer
 import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Delete
-import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.Sync
+import org.gradle.api.tasks.TaskContainer
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.jvm.toolchain.JavaToolchainService
 import org.gradle.kotlin.dsl.*
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import java.io.File
+import java.util.concurrent.Callable
 import javax.inject.Inject
 
-private fun findBuildModel(project: Project): File? =
-        project.projectDir.walkBottomUp().firstOrNull { it.name == "build.mps" || it.name.endsWith(".build.mps") }
-
-private val MODEL_NAME_REGEX = Regex("""<model ref=".*\((.*)\)">""")
-
-private fun readModelName(file: File): String? = file.bufferedReader(Charsets.UTF_8).use {
-    val xmlHeader = it.readLine()
-    if (!"<?xml version=\"1.0\" encoding=\"UTF-8\"?>".equals(xmlHeader, true)) {
-        return null
-    }
-    val modelHeader = it.readLine()
-    val matchResult = MODEL_NAME_REGEX.find(modelHeader) ?: return null
-    return matchResult.groupValues[1]
-}
-
-private fun allGeneratedDirs(root : File): Sequence<File> {
+private fun allGeneratedDirs(root: Directory): Sequence<File> {
     val dirsToFind = arrayOf("source_gen", "source_gen.caches", "classes_gen", "tests_gen", "tests_gen.caches")
     return sequence {
         val stack = mutableListOf<File>()
-        stack.add(root)
+        stack.add(root.asFile)
 
         while (stack.isNotEmpty()) {
             val top = stack.removeAt(stack.size - 1)
@@ -81,131 +74,317 @@ open class MpsPlugin @Inject constructor(
     override fun apply(project: Project) {
         project.run {
             pluginManager.apply(BasePlugin::class)
-            pluginManager.apply(MpsBasePlugin::class)
+            pluginManager.apply(ArtifactTransforms::class.java)
+            pluginManager.apply(JbrToolchainPlugin::class.java)
 
-            val stubs = objects.domainObjectContainer(StubConfiguration::class)
-            extensions.add(typeOf<NamedDomainObjectContainer<StubConfiguration>>(), "stubs", stubs)
+            val mpsZipConfiguration = registerMpsZipConfiguration(configurations)
+            val mpsHomeConfiguration = registerMpsHomeConfiguration(configurations, mpsZipConfiguration)
+            val mpsDefaults = registerMpsDefaultsExtension(extensions, layout, mpsHomeConfiguration)
+            val bundledDependencies = registerBundledDependenciesExtension(tasks, configurations, objects, extensions)
 
-            val syncTasks = objects.listProperty<TaskProvider<Sync>>()
+            val generationConfiguration = registerGenerationConfiguration(configurations)
 
-            stubs.all {
-                val stub = this
-                val config = stub.configuration
-                val task = tasks.register("resolve" + capitalize(stub.name), Sync::class) {
-                    description = "Downloads dependencies of stub configuration '${stub.name}'."
-                    from(config)
-                    into(stub.destinationDir)
-                    rename(stripVersionsAccordingToConfig(config))
-                    group = "build setup"
-                }
-
-                syncTasks.add(task)
-            }
-
-            // Extend clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
-            // classes_gen, tests_gen, tests_gen.caches.
-            tasks.named(BasePlugin.CLEAN_TASK_NAME, Delete::class) {
-                delete({ allGeneratedDirs(projectDir).asIterable() })
-            }
-
-            val generationConfiguration = configurations.create("generation") {
-                isCanBeResolved = true
-                isCanBeConsumed = false
-            }
-
-            // Set type of all artifacts to "zip" by default
-            generationConfiguration.dependencies.withType(ModuleDependency::class).configureEach {
-                artifact { type = "zip" }
-            }
-
-            val mpsDefaults = extensions.create<MpsDefaultsExtension>("mpsDefaults").apply {
-                mpsHome.convention(layout.dir(ArtifactTransforms.getMpsRoot(configurations["mps"])))
-                dependenciesDirectory.convention(layout.buildDirectory.dir("dependencies"))
-                javaLauncher.convention(toolchains.launcherFor {  })
-            }
-
-            syncTasks.add(tasks.register("resolveGenerationDependencies", Sync::class) {
-                dependsOn(generationConfiguration)
-                from({ generationConfiguration.resolve().map(project::zipTree) })
+            val resolveGenerationDependencies by tasks.registering(Sync::class) {
+                from(generationConfiguration.map { cfg -> cfg.map(project::zipTree) })
                 into(mpsDefaults.dependenciesDirectory)
                 group = "build setup"
                 description = "Downloads and unpacks dependencies of '${generationConfiguration.name}' configuration."
-            })
+            }
 
             val setupTask = tasks.register("setup", Sync::class) {
-                dependsOn(syncTasks)
+                dependsOn(resolveGenerationDependencies)
+                dependsOn(Callable { bundledDependencies.map(BundledDependency::syncTask) })
+
                 group = "build setup"
                 description = "Sets up the project so that it can be opened in MPS."
             }
 
-            val buildModel = findBuildModel(this)
-
-            val executeGeneratorsConfiguration = configurations.create("executeGenerators") {
+            val executeGeneratorsConfiguration = configurations.register("executeGenerators") {
                 defaultDependencies {
                     add(project.dependencies.create("de.itemis.mps.build-backends:execute-generators:[1.0,2.0)"))
                 }
             }
 
-            val antConfig = configurations.register("ant") {
-                defaultDependencies {
-                    add(project.dependencies.create("org.apache.ant:ant-junit:1.10.12"))
+            configureTaskDefaults(tasks, providers, mpsDefaults, executeGeneratorsConfiguration)
+
+            val generateBuildScriptsTask = tasks.register("generateBuildScripts", GenerateBuildScripts::class.java)
+            val mpsBuilds = registerMpsBuildsExtension(extensions, tasks, objects, layout, generateBuildScriptsTask)
+
+            generateBuildScriptsTask.configure {
+                dependsOn(setupTask)
+                buildSolutionDescriptors.from(Callable { mpsBuilds.map { it.buildSolutionDescriptor.get() } })
+            }
+
+            registerGroupingTasks(tasks, layout, mpsBuilds)
+
+            // Extend clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
+            // classes_gen, tests_gen, tests_gen.caches.
+            tasks.named(BasePlugin.CLEAN_TASK_NAME, Delete::class) {
+                delete({ allGeneratedDirs(layout.projectDirectory).asIterable() })
+            }
+
+            val defaultConfiguration = configurations["default"];
+
+            configureDefaultConfiguration(defaultConfiguration, generationConfiguration, providers, objects, mpsBuilds)
+            registerMpsComponentFromConfiguration(softwareComponentFactory, components, defaultConfiguration)
+        }
+    }
+
+    private fun registerGroupingTasks(
+        tasks: TaskContainer,
+        layout: ProjectLayout,
+        mpsBuilds: ExtensiblePolymorphicDomainObjectContainer<MpsBuild>
+    ) {
+        tasks.register("generateMps") {
+            group = LifecycleBasePlugin.BUILD_GROUP
+            description = "Runs 'generate' tasks of all MPS builds."
+            dependsOn(Callable { mpsBuilds.map { it.generateTask } })
+        }
+
+        tasks.register("assembleMps") {
+            group = LifecycleBasePlugin.BUILD_GROUP
+            description = "Runs 'assemble' tasks of all MPS main builds."
+
+            dependsOn(Callable { mpsBuilds.withType(MainBuild::class.java).map { it.assembleTask } })
+        }
+
+        val testMps = tasks.register("testMps") {
+            group = LifecycleBasePlugin.VERIFICATION_GROUP
+            description = "Runs 'check' tasks of all MPS test builds."
+
+            dependsOn(Callable { mpsBuilds.withType(TestBuild::class.java).map { it.assembleAndCheckTask } })
+        }
+
+        val test = tasks.register("test") {
+            dependsOn(testMps)
+        }
+
+        tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(test) }
+
+        val packageMps = tasks.register("packageMps") {
+            group = LifecycleBasePlugin.BUILD_GROUP
+            description = "Packages the artifacts of all main MPS modules into ZIP archives."
+
+            dependsOn(Callable { mpsBuilds.withType(MainBuild::class.java).map { it.packageTask.get() } })
+        }
+
+        tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(packageMps) }
+    }
+
+    private fun configureDefaultConfiguration(
+        configuration: Configuration, generationConfiguration: Provider<Configuration>,
+        providers: ProviderFactory,
+        objects: ObjectFactory,
+        mpsBuilds: PolymorphicDomainObjectContainer<MpsBuild>
+    ) {
+        configuration.extendsFrom(generationConfiguration.get())
+
+        configuration.outgoing.artifacts(providers.provider {
+            mpsBuilds.withType(MainBuild::class.java).map { it.packageTask }
+        })
+
+        configuration.isCanBeConsumed = true
+        configuration.isCanBeResolved = false
+
+        // Add an attribute to keep Gradle happy ("variant must have at least one attribute")
+        configuration.attributes.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class, Usage.JAVA_RUNTIME))
+
+    }
+
+    private fun registerMpsComponentFromConfiguration(
+        factory: SoftwareComponentFactory,
+        components: SoftwareComponentContainer,
+        configuration: Configuration
+    ) {
+        val mpsComponent = softwareComponentFactory.adhoc("mps")
+        mpsComponent.addVariantsFromConfiguration(configuration) {
+            mapToMavenScope("compile")
+        }
+        components.add(mpsComponent)
+    }
+
+    private fun registerMpsZipConfiguration(configurations: ConfigurationContainer): NamedDomainObjectProvider<Configuration> =
+        configurations.register("mpsZip") {
+            isCanBeResolved = true
+            isCanBeConsumed = false
+
+            attributes.attribute(
+                ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                ArtifactTransforms.UNZIP_MPS_FROM_ARTIFACT_TYPE
+            )
+        }
+
+    private fun registerMpsHomeConfiguration(
+        configurations: ConfigurationContainer,
+        mpsZipConfiguration: NamedDomainObjectProvider<Configuration>
+    ): NamedDomainObjectProvider<Configuration> =
+        configurations.register("mpsHome") {
+            isCanBeResolved = true
+            isCanBeDeclared = false
+            isCanBeConsumed = false
+
+            attributes.attribute(
+                ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
+                ArtifactTransforms.UNZIP_MPS_TO_ARTIFACT_TYPE
+            )
+
+            extendsFrom(mpsZipConfiguration.get())
+        }
+
+    private fun registerGenerationConfiguration(configurations: ConfigurationContainer): NamedDomainObjectProvider<Configuration> =
+        configurations.register("generation") {
+            isCanBeResolved = true
+            isCanBeConsumed = false
+        }
+
+    private fun registerMpsDefaultsExtension(
+        extensions: ExtensionContainer,
+        layout: ProjectLayout,
+        mpsHomeConfiguration: Provider<Configuration>
+    ): MpsDefaultsExtension =
+        extensions.create<MpsDefaultsExtension>("mpsDefaults").apply {
+            mpsHome.convention(layout.dir(mpsHomeConfiguration.map { it.single() }))
+            dependenciesDirectory.convention(layout.buildDirectory.dir("dependencies"))
+            javaLauncher.convention(extensions.getByType<JbrToolchainExtension>().javaLauncher)
+            antClasspath.convention(mpsHome.dir("lib/ant/lib").map {
+                it.asFileTree.matching {
+                    include("*.jar")
+                    // ant-mps.jar contains MpsLoadTask which depends on JDOM which is not found among the Ant
+                    // libraries. If the jar is left on the classpath, Ant loads MpsLoadTask from its own classloader
+                    // and does not use the classpath specified in the <taskdef> in the build script, leading to
+                    // a NoClassDefFoundError.
+                    exclude("ant-mps.jar")
+                }
+            })
+        }
+
+    private fun registerMpsBuildsExtension(
+        extensions: ExtensionContainer,
+        tasks: TaskContainer,
+        objects: ObjectFactory,
+        layout: ProjectLayout,
+        generateBuildScriptsTask: TaskProvider<out Task>
+    ): ExtensiblePolymorphicDomainObjectContainer<MpsBuild> {
+        val mpsBuilds = objects.polymorphicDomainObjectContainer(MpsBuild::class.java)
+        mpsBuilds.registerBinding(MainBuild::class.java, MainBuild::class.java)
+        mpsBuilds.registerBinding(TestBuild::class.java, TestBuild::class.java)
+        extensions.add(typeOf<PolymorphicDomainObjectContainer<MpsBuild>>(), "mpsBuilds", mpsBuilds)
+
+        mpsBuilds.all {
+            configureTasks(this, tasks, layout, generateBuildScriptsTask)
+        }
+
+        return mpsBuilds
+    }
+
+    private fun configureTasks(
+        build: MpsBuild,
+        tasks: TaskContainer,
+        layout: ProjectLayout,
+        generateBuildScriptsTask: TaskProvider<out Task>
+    ) {
+        build.generateTask = tasks.register("generate${capitalize(build.name)}", RunAnt::class.java) {
+            group = "build"
+            description = "Runs 'generate' target of the '${build.name}' build."
+            dependsOn(generateBuildScriptsTask)
+
+            buildFile = build.generatedBuildFile
+            targets.set(listOf("generate"))
+        }
+
+        when (build) {
+            is MainBuild -> {
+                build.artifactsDirectory.convention(layout.buildDirectory.dir(build.buildProjectName.map { "artifacts/$it" }))
+
+
+                build.assembleTask = tasks.register("assemble${capitalize(build.name)}", RunAnt::class.java) {
+                    group = "build"
+                    description = "Runs 'assemble' target of the '${build.name}' build."
+                    dependsOn(build.generateTask)
+
+                    buildFile = build.generatedBuildFile
+                    targets.set(listOf("assemble"))
+                }
+
+                build.packageTask = tasks.register("package${capitalize(build.name)}", Zip::class) {
+                    description = "Packages the artifacts of '${build.name}' build into a ZIP archive."
+                    group = LifecycleBasePlugin.BUILD_GROUP
+
+                    dependsOn(build.assembleTask)
+
+                    from(build.artifactsDirectory)
+
+                    archiveBaseName = build.buildProjectName
                 }
             }
 
-            val artifactsDir = layout.buildDirectory.dir("artifacts")
+            is TestBuild -> {
+                build.assembleAndCheckTask = tasks.register("check${capitalize(build.name)}", RunAnt::class.java) {
+                    group = "build"
+                    description = "Runs 'check' target of the '${build.name}' build."
+                    dependsOn(build.generateTask)
 
-            tasks.withType(RunAnt::class) {
-                javaLauncher.convention(mpsDefaults.javaLauncher)
-                pathProperties.put("mps_home", mpsDefaults.mpsHome.asFile)
-                valueProperties.put("version", provider { project.version.toString() })
-                classpath.convention(antConfig)
+                    buildFile = build.generatedBuildFile
+                    targets.set(listOf("check"))
+                }
+            }
+        }
+    }
+
+    private fun registerBundledDependenciesExtension(
+        tasks: TaskContainer,
+        configurations: ConfigurationContainer,
+        objects: ObjectFactory,
+        extensions: ExtensionContainer
+    ): NamedDomainObjectContainer<BundledDependency> {
+        val bundledDependencies = objects.domainObjectContainer(BundledDependency::class)
+        extensions.add(
+            typeOf<NamedDomainObjectContainer<BundledDependency>>(), "bundledDependencies",
+            bundledDependencies
+        )
+
+        bundledDependencies.all {
+            val stub = this
+
+            stub.configuration = configurations.register(configurationName) {
+                isCanBeConsumed = false
+                fromDependencyCollector(stub.dependency)
             }
 
-            val assembleMps = tasks.register("assembleMps", RunAnt::class) {
-                dependsOn(setupTask)
-                group = "build"
-                description = "Assembles the MPS project."
-
-                targets.set(listOf("generate", "assemble"))
-
-                inputs.files(projectDirExcludingBuildDir(project).include("**/*.mps"))
-                    .ignoreEmptyDirectories()
-                    .withPropertyName("models")
-                outputs.dir(artifactsDir)
+            stub.syncTask = tasks.register("resolve" + capitalize(stub.name), Sync::class) {
+                description = "Downloads dependencies of stub configuration '${stub.name}'."
+                from(stub.configuration)
+                into(stub.destinationDir)
+                rename(stripVersionsAccordingToConfig(stub.configuration))
+                group = "build setup"
             }
+        }
 
-            val packagePluginZip = tasks.register("package", Zip::class) {
-                description = "Packages the built modules in a ZIP archive."
-                group = "build"
+        return bundledDependencies
+    }
 
-                from(assembleMps)
-            }
-            tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(assembleMps) }
+    private fun configureTaskDefaults(
+        tasks: TaskContainer,
+        providers: ProviderFactory,
+        mpsDefaults: MpsDefaultsExtension,
+        generateBackendConfiguration: NamedDomainObjectProvider<Configuration>
+    ) {
+        tasks.withType(RunAnt::class.java) {
+            javaLauncher.convention(mpsDefaults.javaLauncher)
+            pathProperties.put("mps_home", mpsDefaults.mpsHome.asFile)
+            pathProperties.putAll(mpsDefaults.pathVariables)
 
-            val checkMps = tasks.register("checkMps", RunAnt::class) {
-                dependsOn(assembleMps)
-                group = "build"
-                description = "Runs tests in the MPS project."
+            valueProperties.put("version", providers.provider { project.version.toString() })
+            classpath.convention(mpsDefaults.antClasspath)
+        }
 
-                targets.set(listOf("check"))
-            }
-            tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(checkMps) }
+        tasks.withType(GenerateBuildScripts::class.java) {
+            projectDirectory.convention(project.layout.projectDirectory)
+            javaLauncher.convention(mpsDefaults.javaLauncher)
+            generateBackendClasspath.convention(generateBackendConfiguration)
+            mpsHome.convention(mpsDefaults.mpsHome)
 
-            val defaultConfiguration = configurations["default"].apply {
-                extendsFrom(generationConfiguration)
-                outgoing.artifact(packagePluginZip)
-                isCanBeConsumed = true
-                isCanBeResolved = false
-
-                // Add an attribute to keep Gradle happy ("variant must have at least one attribute")
-                attributes.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class, Usage.JAVA_RUNTIME))
-            }
-
-            val mpsComponent = softwareComponentFactory.adhoc("mps")
-            mpsComponent.addVariantsFromConfiguration(defaultConfiguration) {
-                mapToMavenScope("compile")
-            }
-            components.add(mpsComponent)
+            pathVariables.putAll(mpsDefaults.pathVariables)
         }
     }
 
@@ -219,56 +398,5 @@ open class MpsPlugin @Inject constructor(
         }
 
         return projectTree
-    }
-
-    private fun maybeRegisterGenerateBuildscriptTask(
-        project: Project,
-        generateBackendConfiguration: Configuration,
-        buildModel: File?,
-        outputAntScript: File,
-        mpsDefaults: MpsDefaultsExtension,
-        setupTask: Any
-    ): TaskProvider<JavaExec>? {
-        if (buildModel == null) {
-            return null
-        }
-
-        project.run {
-            logger.info("Using build model {}", buildModel)
-            val buildModelName = readModelName(buildModel) ?: throw GradleException(
-                "Could not retrieve build model name from model $buildModel"
-            )
-
-            return tasks.register("generateBuildscript", JavaExec::class) {
-                dependsOn(setupTask)
-                args(
-                    "--project=${projectDir}",
-                    "--model=$buildModelName",
-                    "--environment=MPS"
-                )
-                group = "build"
-                description = "Generate the Ant build script from ${buildModel.relativeToOrSelf(projectDir)}."
-
-                classpath(fileTree(mpsDefaults.mpsHome.map { it.dir("lib") }).include("**/*.jar"))
-                classpath(fileTree(mpsDefaults.mpsHome.map { it.dir("plugins") }).include("**/lib/**/*.jar"))
-                classpath(generateBackendConfiguration)
-
-                mainClass.set("de.itemis.mps.gradle.generate.MainKt")
-
-                inputs.file(buildModel).withPropertyName("build-model")
-                inputs.files(projectDirExcludingBuildDir(project).include("**/*.msd", "**/*.mpl", "**/*.devkit"))
-                    .ignoreEmptyDirectories()
-                    .withPropertyName("module-files")
-                outputs.file(outputAntScript)
-
-                // Needed to avoid "URI is not hierarchical" exceptions
-                environment("NO_FS_ROOTS_ACCESS_CHECK", "true")
-
-                MpsBackendLauncher(project.objects).builder()
-                    .withJavaLauncher(mpsDefaults.javaLauncher)
-                    .withMpsHome(mpsDefaults.mpsHome.asFile)
-                    .configure(this)
-            }
-        }
     }
 }
