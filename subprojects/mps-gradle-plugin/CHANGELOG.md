@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.0-pre1
+
+Breaking changes are to be expected until the final 2.0.0 release.
+
+### Added
+
+- Path variables can be specified in `mpsDefaults` and will be passed to both MPS and Ant tasks.
+- Support for multiple build scripts, including test build scripts.
+
+### 🚨 Changed
+
+- Automatic build script detection was removed, build scripts now have to be explicitly added to the `mpsBuilds`
+  container.
+- The plugin now applies the `jbr-toolchain` plugin and uses the runtime specified by the `jbr` configuration to run
+  Ant and MPS.
+- `stubs` renamed to `bundledDependencies`
+- 🚨 `com.specificlanguages.RunAntScript` replaced with `com.specificlanguages.mps.RunAnt` which uses modern Gradle
+  features: lazy properties and `JavaLauncher` for specifying the JVM to use.
+- 🚨 The `com.specificlanguages.mps` plugin no longer applies the `java-base` plugin.
+
+### 🚨 Removed
+
+- `mpsDefaults.javaExecutable` (previously deprecated in favor of `mpsDefaults.javaLauncher`).
+
 ## 1.9.0
 
 ### Added

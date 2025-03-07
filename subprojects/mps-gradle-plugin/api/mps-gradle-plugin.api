@@ -1,43 +1,77 @@
-public abstract interface class com/specificlanguages/MpsDefaultsExtension {
-	public abstract fun getBuildScript ()Lorg/gradle/api/file/RegularFileProperty;
-	public abstract fun getDependenciesDirectory ()Lorg/gradle/api/file/DirectoryProperty;
-	public abstract fun getJavaExecutable ()Lorg/gradle/api/file/RegularFileProperty;
-	public abstract fun getJavaLauncher ()Lorg/gradle/api/provider/Property;
-	public abstract fun getMpsHome ()Lorg/gradle/api/file/DirectoryProperty;
+public abstract class com/specificlanguages/mps/BundledDependency : org/gradle/api/Named {
+	public fun <init> (Ljava/lang/String;)V
+	public abstract fun getConfiguration ()Lorg/gradle/api/provider/Property;
+	public final fun getConfigurationName ()Ljava/lang/String;
+	public abstract fun getDependency ()Lorg/gradle/api/artifacts/dsl/DependencyCollector;
+	public abstract fun getDestinationDir ()Lorg/gradle/api/file/DirectoryProperty;
+	public fun getName ()Ljava/lang/String;
+	public abstract fun getSyncTask ()Lorg/gradle/api/provider/Property;
 }
 
-public class com/specificlanguages/MpsPlugin : org/gradle/api/Plugin {
+public abstract class com/specificlanguages/mps/GenerateBuildScripts : org/gradle/api/DefaultTask {
+	public fun <init> ()V
+	public abstract fun getBuildSolutionDescriptors ()Lorg/gradle/api/file/ConfigurableFileCollection;
+	protected abstract fun getExecOperations ()Lorg/gradle/process/ExecOperations;
+	public abstract fun getGenerateBackendClasspath ()Lorg/gradle/api/file/ConfigurableFileCollection;
+	public abstract fun getJavaLauncher ()Lorg/gradle/api/provider/Property;
+	public abstract fun getMpsHome ()Lorg/gradle/api/file/DirectoryProperty;
+	protected abstract fun getObjects ()Lorg/gradle/api/model/ObjectFactory;
+	public abstract fun getPathVariables ()Lorg/gradle/api/provider/MapProperty;
+	public abstract fun getProjectDirectory ()Lorg/gradle/api/file/DirectoryProperty;
+	public final fun make ()V
+}
+
+public abstract class com/specificlanguages/mps/MainBuild : com/specificlanguages/mps/MpsBuild {
+	public fun <init> (Ljava/lang/String;)V
+	public abstract fun getAssembleTask ()Lorg/gradle/api/provider/Property;
+	public abstract fun getPackageTask ()Lorg/gradle/api/provider/Property;
+}
+
+public abstract class com/specificlanguages/mps/MpsBuild : org/gradle/api/Named {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun dependsOn ([Lcom/specificlanguages/mps/MainBuild;)V
+	public abstract fun getArtifactsDirectory ()Lorg/gradle/api/file/DirectoryProperty;
+	public abstract fun getBuildFile ()Lorg/gradle/api/file/RegularFileProperty;
+	public abstract fun getBuildProjectName ()Lorg/gradle/api/provider/Property;
+	public abstract fun getBuildSolutionDescriptor ()Lorg/gradle/api/file/RegularFileProperty;
+	public abstract fun getDependencies ()Lorg/gradle/api/provider/SetProperty;
+	public abstract fun getGenerateTask ()Lorg/gradle/api/provider/Property;
+	public fun getName ()Ljava/lang/String;
+}
+
+public abstract interface class com/specificlanguages/mps/MpsDefaultsExtension {
+	public abstract fun getAntClasspath ()Lorg/gradle/api/file/ConfigurableFileCollection;
+	public abstract fun getDependenciesDirectory ()Lorg/gradle/api/file/DirectoryProperty;
+	public abstract fun getJavaLauncher ()Lorg/gradle/api/provider/Property;
+	public abstract fun getMpsHome ()Lorg/gradle/api/file/DirectoryProperty;
+	public abstract fun getPathVariables ()Lorg/gradle/api/provider/MapProperty;
+}
+
+public class com/specificlanguages/mps/MpsPlugin : org/gradle/api/Plugin {
 	public fun <init> (Lorg/gradle/api/component/SoftwareComponentFactory;Lorg/gradle/jvm/toolchain/JavaToolchainService;)V
 	public synthetic fun apply (Ljava/lang/Object;)V
 	public fun apply (Lorg/gradle/api/Project;)V
 }
 
-public abstract class com/specificlanguages/RunAntScript : org/gradle/api/DefaultTask {
+public abstract class com/specificlanguages/mps/RunAnt : org/gradle/api/DefaultTask {
 	public fun <init> ()V
-	public fun build ()V
-	public final fun configureJavaExec (Lorg/gradle/api/Action;)V
-	public abstract fun getAdditionalConfigurationActions ()Lorg/gradle/api/provider/ListProperty;
-	public abstract fun getAntProperties ()Lorg/gradle/api/provider/MapProperty;
-	public abstract fun getBuildScript ()Lorg/gradle/api/file/RegularFileProperty;
-	public abstract fun getClasspath ()Lorg/gradle/api/provider/Property;
+	public final fun build ()V
+	public abstract fun getBuildFile ()Lorg/gradle/api/file/RegularFileProperty;
+	public abstract fun getClasspath ()Lorg/gradle/api/file/ConfigurableFileCollection;
+	public abstract fun getEnvironment ()Lorg/gradle/api/provider/MapProperty;
 	protected abstract fun getExecOperations ()Lorg/gradle/process/ExecOperations;
-	public abstract fun getJavaExecutable ()Lorg/gradle/api/file/RegularFileProperty;
-	public abstract fun getScriptArgs ()Lorg/gradle/api/provider/ListProperty;
+	public abstract fun getJavaLauncher ()Lorg/gradle/api/provider/Property;
+	public abstract fun getJvmArguments ()Lorg/gradle/api/provider/ListProperty;
+	public abstract fun getOptions ()Lorg/gradle/api/provider/ListProperty;
+	public abstract fun getPathProperties ()Lorg/gradle/api/provider/MapProperty;
 	public abstract fun getTargets ()Lorg/gradle/api/provider/ListProperty;
+	protected abstract fun getToolchains ()Lorg/gradle/jvm/toolchain/JavaToolchainService;
+	public abstract fun getValueProperties ()Lorg/gradle/api/provider/MapProperty;
+	public abstract fun getWorkingDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 }
 
-public abstract class com/specificlanguages/StubConfiguration : org/gradle/api/Named {
-	public fun <init> (Lorg/gradle/api/Project;Ljava/lang/String;)V
-	public final fun dependency (Ljava/lang/Object;)Lorg/gradle/api/artifacts/Dependency;
-	public final fun dependency (Ljava/lang/Object;Lgroovy/lang/Closure;)Lorg/gradle/api/artifacts/Dependency;
-	public final fun dependency (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/artifacts/ExternalModuleDependency;
-	public final fun dependency (Lorg/gradle/api/artifacts/ModuleDependency;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/artifacts/ModuleDependency;
-	public final fun destinationDir (Ljava/lang/Object;)V
-	public final fun getConfiguration ()Lorg/gradle/api/NamedDomainObjectProvider;
-	public abstract fun getDestinationDir ()Lorg/gradle/api/file/DirectoryProperty;
-	public fun getName ()Ljava/lang/String;
-	public final fun project (Ljava/lang/String;Ljava/lang/String;)Lorg/gradle/api/artifacts/ProjectDependency;
-	public final fun project (Ljava/util/Map;)Lorg/gradle/api/artifacts/Dependency;
-	public static synthetic fun project$default (Lcom/specificlanguages/StubConfiguration;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lorg/gradle/api/artifacts/ProjectDependency;
+public abstract class com/specificlanguages/mps/TestBuild : com/specificlanguages/mps/MpsBuild {
+	public fun <init> (Ljava/lang/String;)V
+	public abstract fun getAssembleAndCheckTask ()Lorg/gradle/api/provider/Property;
 }
 

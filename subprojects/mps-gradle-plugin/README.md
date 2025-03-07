@@ -1,22 +1,20 @@
-# MPS Gradle Plugin
+# MPS Gradle plugin
 
-A Gradle plugin to package and publish MPS plugins. Use it if you have developed a language in MPS and you want to make
-it easy for other developers to use your language in their projects.
+A Gradle plugin to package and publish MPS libraries. Use it if you have developed a library of plugins in MPS and you
+want to make it easy for other developers to use your language in their projects.
 
-Publishing MPS-based IDEs (rich client platforms) is out of scope for this plugin.
+Publishing MPS-based IDEs (RCPs, or rich client platforms) is out of scope for this plugin.
 
 This plugin also does not cover publishing to the JetBrains Plugins Repository.
 
 ## Compatibility
 
-This plugin has been tested with the following combinations of Gradle and MPS:
+This plugin has been tested with Gradle 8.13.
 
-* Gradle 7.1 or above is required since version 1.2.0.
-* Gradle 7.2 and MPS 2020.3.5 (version 1.1.0),
-* Gradle 5.6.2 and MPS 2019.2.4 (version 1.0.0),
-* Gradle 5.6.2 and MPS 2019.1.5 (version 0.0.2).
+> [!CAUTION]
+> The content below this point is outdated and will be rewritten.
 
-## Conventions and Assumptions
+## Conventions and assumptions
 
 To simplify the configuration the plugin makes certain assumptions and therefore your project must follow certain
 conventions.
@@ -24,16 +22,13 @@ conventions.
 The following assumptions will hold if you let the MPS wizard generate your build solution and script:
 
 * The MPS project directory is assumed to coincide with the Gradle project directory.
-* The MPS project must contain a build model that is either named `build.mps` or matches `*.build.mps`. The build model
-  must use default persistence and not file-per-root persistence.
-* The build model must generate a `build.xml` file in the project's root directory.
 * The variable that specifies the location of MPS in the build script is called `mps_home`.
 
-The following conventions are different from the defaults and require manual adjustment of the generated build script:
+The following conventions are different from the defaults and you will have to adjust the generated build script to
+accomodate them:
 
 * The default layout should also include the build solution.
-* Instead of creating a .zip of all modules or plugins the default layout should just collect them in the top-level
-  folder:
+* Instead of creating a .zip of all modules or plugins the default layout should collect them in the top-level folder:
   ```
   default layout:
     module com.mbeddr.mpsutil.common 
@@ -45,8 +40,8 @@ The following conventions are different from the defaults and require manual adj
     plugin com.mbeddr.mpsutil.common [auto packaging]
       <empty>
   ```
-* Any dependencies will be put under `build/dependencies` folder and can be referenced from the project's base directory
-  (without using any path variables).
+* Any external dependencies will be put under `build/dependencies` folder and can be referenced from the project's base
+  directory (without using any path variables).
 
 ### Customizing Conventions
 
@@ -57,17 +52,16 @@ mpsDefaults {
     // Custom MPS home directory
     mpsHome.set(File("/my/mps/home"))
     
-    // Custom location and name of the build script
-    buildScript.set(file("build/build.xml"))
-    
     // Custom dependencies directory
     dependenciesDirectory.set("build/project-libraries")
 }
 ```
 
-## Sample Project
+## Sample project
 
-A sample project using the plugin can be found here: https://github.com/specificlanguages/mps-gradle-plugin-sample.
+A couple of small projects using the plugin can be found here:
+* [mps-json](https://github.com/specificlanguages/mps-json)
+* [mps-to-json-exporter](https://github.com/specificlanguages/mps-to-json-exporter), using mps-json as a dependency.
 
 ## Configuration
 
@@ -78,7 +72,7 @@ All code snippets below use Kotlin syntax for Gradle.
     ```kotlin
    // build.gradle.kts
     plugins {
-        id("com.specificlanguages.mps") version "1.8.0"
+        id("com.specificlanguages.mps") version "2.0.0-pre1"
     }
     ```
 
@@ -88,7 +82,7 @@ All code snippets below use Kotlin syntax for Gradle.
    // settings.gradle.kts
    pluginManagement {
        repositories {
-           maven(url = "https://artifacts.itemis.cloud/repository/maven-mps")
+           maven("https://artifacts.itemis.cloud/repository/maven-mps")
    
            // Gradle plugin portal must be added explicitly when using non-default repositories
            gradlePluginPortal()
@@ -96,8 +90,8 @@ All code snippets below use Kotlin syntax for Gradle.
    }
    ```
 
-   This repository is used to
-   download [mps-build-backends Gradle MPS launcher](https://github.com/mbeddr/mps-build-backends/tree/main/launcher)
+   This repository is used to download
+   [mps-build-backends Gradle MPS launcher](https://github.com/mbeddr/mps-build-backends/tree/main/launcher)
    that is used to provide proper command line arguments to the backend in the next step, depending on the MPS version
    being run.
 
@@ -106,7 +100,7 @@ All code snippets below use Kotlin syntax for Gradle.
    ```kotlin
    // build.gradle.kts
    repositories {
-       maven(url = "https://artifacts.itemis.cloud/repository/maven-mps")
+       maven("https://artifacts.itemis.cloud/repository/maven-mps")
        mavenCentral()
    }
    ```
@@ -120,7 +114,7 @@ All code snippets below use Kotlin syntax for Gradle.
    ```kotlin
    // build.gradle.kts
    dependencies {
-       "mps"("com.jetbrains:mps:2021.1.4")
+       mps("com.jetbrains:mps:2024.3.1")
    }
    ```
 
@@ -129,7 +123,7 @@ All code snippets below use Kotlin syntax for Gradle.
     ```kotlin
    // build.gradle.kts
     dependencies {
-        "generation"("de.itemis.mps:extensions:2021.1.+")
+        generation("de.itemis.mps:extensions:2024.3.+")
     }
     ```
 
@@ -137,8 +131,8 @@ All code snippets below use Kotlin syntax for Gradle.
 
     ```kotlin
    // build.gradle.kts
-    stubs {
-        register("stubs") {
+    bundledDependencies {
+        create("commonsLang") {
             destinationDir("solutions/my.stubs/lib")
             dependency("org.apache.commons:commons-lang3:3.12.0")
             ...
@@ -160,7 +154,7 @@ All code snippets below use Kotlin syntax for Gradle.
        publications {
            register<MavenPublication>("mpsPlugin") {
                from(components["mps"])
-   
+
                // Put resolved versions of dependencies into POM files
                versionMapping { usage("java-runtime") { fromResolutionOf("generation") } }
            }
@@ -168,7 +162,7 @@ All code snippets below use Kotlin syntax for Gradle.
    }
    ```
 
-## Effects of Applying the Plugin
+## Effects of applying the plugin
 
 The plugin applies the [Gradle Base plugin](https://docs.gradle.org/current/userguide/base_plugin.html) which creates a
 set of _lifecycle tasks_ such as `clean`, `assemble`, `check`, or `build`.
@@ -178,16 +172,12 @@ The plugin creates the following tasks:
 * `setup`: unpacks all dependencies of the `generation` configuration into `build/dependencies`. Since 1.2.0 it also
   triggers the individual tasks to unpack stubs, see below. Executing the `setup` task is required before the project
   can be opened in MPS.
-* ~~`resolveMpsForGeneration`: downloads the MPS artifact specified by the `mps` configuration and unpacks it into
-  `build/mps`.~~ (Removed in 1.4.0.)
-* `resolve<StubName>`: a [Sync](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.Sync.html) task created
-  for each stub block (`<StubName>` is the name of the stub entry, capitalized). The task resolves the dependencies
-  configured in the stub block and copies them into the specified destination directory of the stub, deleting any other
+* `resolve<Name>`: a [Sync](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.Sync.html) task created
+  for each 'bundled dependency' object (`<Name>` is the name of the object, capitalized). The task resolves
+  the dependencies configured in the object and copies them into the specified destination directory, deleting any other
   files present in that directory. When copying the dependencies their version numbers are stripped. This makes it
   possible to upgrade dependency versions in the Gradle build script without also reconfiguring the MPS stub solutions.
-* `generateBuildscript`: generates the build script using MPS. The build model location is detected automatically. 
-  Since 1.2.2 the task specifies all module files (`*.msd`, `*.mpl`, `*.devkit`) as its inputs since build scripts 
-  check their contents against the modules.
+* `generateBuildscripts`: generates the build scripts using MPS. The build model location is detected automatically.
 * `assembleMps`: runs `generate` and `assemble` targets of the generated Ant script. The `assemble` lifecycle task is
   set to depend on `assembleMps`. Since 1.1.1 the version of the project is passed to Ant via `-Dversion=${project.
   version}`. Since 1.2.2 the task specifies all `*.mps` files in all directories as its inputs.
@@ -199,23 +189,11 @@ The plugin creates the following tasks:
 The plugin creates a software component named `mps` to represent the published code and adds the `default` configuration
 to it.
 
-The plugin modifies the `clean` task to delete MPS-generated directories: `source_gen`, `source_gen.caches`,
-`classes_gen`, `tests_gen`, and `tests_gen.caches`. This is in addition to the default operation of `clean` task which
-deletes the project's build directory (`build`).
-
-## Downloading and Unzipping MPS
-
-Before version 1.4.0 the plugin declared a task, `resolveMpsForGeneration`, to download and unzip the MPS distribution
-under `build/mps`. In 1.4.0 and above this is handled via Gradle artifact transforms. This should enable sharing the
-MPS distributions between projects that use the same MPS version (for example, among subprojects of a large project).
-
-The task is left empty in 1.4.0 for backwards compatibility purposes.
-
-## Task Dependency Graph
+## Task dependency graph
 
 ```mermaid
 flowchart RL
-  setup --> resolveStub["resolve{STUB1,...,STUBn}"]
+  setup --> resolveBundledDependencies["resolve{BD1,...,BDn}"]
   setup --> resolveGenerationDependencies
   
   assemble --> assembleMps
