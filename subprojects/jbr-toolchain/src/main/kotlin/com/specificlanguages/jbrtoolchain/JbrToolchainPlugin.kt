@@ -30,7 +30,7 @@ abstract class JbrToolchainPlugin : Plugin<Project> {
         val singleFile = iterator.next()
 
         check(!iterator.hasNext()) {
-            "Expected configuration 'jbr' to contain exactly one file, however, it contains no files. " +
+            "Expected configuration 'jbr' to contain exactly one file, however, it contains multiple files. " +
                     "Make sure you only add a single dependency to the 'jbr' configuration."
         }
 
