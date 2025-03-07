@@ -1,4 +1,4 @@
-package com.specificlanguages.internal
+package com.specificlanguages.mps.internal
 
 import java.io.File
 import java.io.FileNotFoundException

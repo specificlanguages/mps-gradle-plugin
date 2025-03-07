@@ -1,7 +1,7 @@
 package com.specificlanguages.mps
 
-import com.specificlanguages.internal.ParsingResult
-import com.specificlanguages.internal.readSolutionName
+import com.specificlanguages.mps.internal.ParsingResult
+import com.specificlanguages.mps.internal.readSolutionName
 import de.itemis.mps.gradle.launcher.MpsBackendLauncher
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
