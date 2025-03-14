@@ -73,7 +73,7 @@ abstract class RunAnt : DefaultTask() {
     abstract val jvmArguments: ListProperty<String>
 
     /**
-     * Environment variables for the forked JVM.
+     * Environment variables for the forked JVM. Defaults to the environment of the current process.
      */
     @get:Internal
     abstract val environment: MapProperty<String, String>
@@ -91,6 +91,8 @@ abstract class RunAnt : DefaultTask() {
             //
             // https://docs.gradle.org/current/userguide/toolchains.html#sec:configuring_toolchain_specifications
         }))
+
+        environment.putAll(project.providers.environmentVariablesPrefixedBy(""))
 
         workingDirectory.convention(project.layout.dir(project.provider { temporaryDir }))
     }
