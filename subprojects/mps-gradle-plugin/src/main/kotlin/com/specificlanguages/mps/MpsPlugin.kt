@@ -394,7 +394,7 @@ open class MpsPlugin @Inject constructor(
         mpsDefaults: MpsDefaultsExtension,
         generateBackendConfiguration: NamedDomainObjectProvider<Configuration>
     ) {
-        tasks.withType(RunAnt::class.java) {
+        tasks.withType(RunAnt::class.java).configureEach {
             javaLauncher.convention(mpsDefaults.javaLauncher)
             pathProperties.put("mps_home", mpsDefaults.mpsHome.asFile)
             pathProperties.putAll(mpsDefaults.pathVariables)
@@ -403,7 +403,7 @@ open class MpsPlugin @Inject constructor(
             classpath.convention(mpsDefaults.antClasspath)
         }
 
-        tasks.withType(GenerateBuildScripts::class.java) {
+        tasks.withType(GenerateBuildScripts::class.java).configureEach {
             projectDirectory.convention(project.layout.projectDirectory)
             javaLauncher.convention(mpsDefaults.javaLauncher)
             generateBackendClasspath.convention(generateBackendConfiguration)
