@@ -2,15 +2,17 @@ package com.specificlanguages.mps
 
 import com.specificlanguages.jbrtoolchain.JbrToolchainExtension
 import com.specificlanguages.jbrtoolchain.JbrToolchainPlugin
+import com.specificlanguages.mps.internal.ConfigurationNames
 import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
+import org.gradle.api.artifacts.ConsumableConfiguration
+import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentContainer
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.Directory
-import org.gradle.api.file.FileCollection
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.BasePlugin
@@ -72,33 +74,45 @@ open class MpsPlugin @Inject constructor(
 
     override fun apply(project: Project) {
         project.run {
-            pluginManager.apply(BasePlugin::class)
+            pluginManager.apply(BasePlugin::class.java)
             pluginManager.apply(ArtifactTransforms::class.java)
             pluginManager.apply(JbrToolchainPlugin::class.java)
 
             val mpsConfiguration = registerMpsConfiguration(configurations)
-            val mpsHomeConfiguration = registerMpsHomeConfiguration(configurations, mpsConfiguration)
-            val mpsDefaults = registerMpsDefaultsExtension(extensions, layout, mpsHomeConfiguration)
+            val mpsDefaults = registerMpsDefaultsExtension(extensions, layout, mpsConfiguration)
             val bundledDependencies = registerBundledDependenciesExtension(tasks, configurations, objects, extensions)
 
-            val generationConfiguration = registerGenerationConfiguration(configurations)
+            val apiConfiguration = configurations.dependencyScope(ConfigurationNames.API)
 
-            val resolveGenerationDependencies by tasks.registering(Sync::class) {
-                from(generationConfiguration.map { cfg -> cfg.map(project::zipTree) })
+            val testImplementationConfiguration =
+                configurations.dependencyScope(ConfigurationNames.TEST_IMPLEMENTATION) {
+                    extendsFrom(apiConfiguration.get())
+                }
+
+            val mpsLibraries = configurations.resolvable(ConfigurationNames.MPS_LIBRARIES) {
+                extendsFrom(apiConfiguration.get(), testImplementationConfiguration.get())
+            }
+
+            val resolveMpsLibraries by tasks.registering(Sync::class) {
+                dependsOn(mpsLibraries)
+                from(mpsLibraries.map { cfg -> cfg.map(project::zipTree) })
+
                 into(mpsDefaults.mpsLibrariesDirectory)
                 group = "build setup"
                 description = "Downloads and extracts all external MPS libraries."
             }
 
             val setupTask = tasks.register("setup", Sync::class) {
-                dependsOn(resolveGenerationDependencies)
+                dependsOn(resolveMpsLibraries)
                 dependsOn(Callable { bundledDependencies.map(BundledDependency::syncTask) })
 
                 group = "build setup"
                 description = "Sets up the project so that it can be opened in MPS."
             }
 
-            val executeGeneratorsConfiguration = configurations.register("executeGenerators") {
+            val executeGeneratorsConfiguration = configurations.register(ConfigurationNames.EXECUTE_GENERATORS) {
+                isCanBeConsumed = false
+
                 defaultDependencies {
                     add(project.dependencies.create("de.itemis.mps.build-backends:execute-generators:[1.0,2.0)"))
                 }
@@ -122,11 +136,51 @@ open class MpsPlugin @Inject constructor(
                 delete({ allGeneratedDirs(layout.projectDirectory).asIterable() })
             }
 
-            val defaultConfiguration = configurations["default"];
+            val packageTask = registerPackageTask(mpsBuilds, this.tasks)
 
-            configureDefaultConfiguration(defaultConfiguration, generationConfiguration, providers, objects, mpsBuilds)
-            registerMpsComponentFromConfiguration(components, defaultConfiguration)
+            val apiElementsConfiguration =
+                registerApiElementsConfiguration(apiConfiguration, packageTask, configurations, objects)
+
+            configurations[Dependency.DEFAULT_CONFIGURATION].apply {
+                extendsFrom(apiElementsConfiguration.get())
+                outgoing.artifact(packageTask)
+            }
+
+            registerMpsComponent(components, apiElementsConfiguration)
         }
+    }
+
+    private fun registerApiElementsConfiguration(
+        apiConfiguration: Provider<out Configuration>,
+        packageTask: TaskProvider<Zip>,
+        configurations: ConfigurationContainer,
+        objects: ObjectFactory
+    ): NamedDomainObjectProvider<ConsumableConfiguration> = configurations.consumable(ConfigurationNames.API_ELEMENTS) {
+        extendsFrom(apiConfiguration.get())
+        this.outgoing.artifact(packageTask)
+        this.attributes.attribute<Usage>(
+            Usage.USAGE_ATTRIBUTE,
+            objects.named(Usage::class, Usage.JAVA_API)
+        )
+    }
+
+    private fun registerPackageTask(
+        mpsBuilds: ExtensiblePolymorphicDomainObjectContainer<MpsBuild>,
+        tasks: TaskContainer
+    ): TaskProvider<Zip> {
+        val packageTask = tasks.register("package", Zip::class) {
+            group = LifecycleBasePlugin.BUILD_GROUP
+            description = "Packages the artifacts of all main MPS builds into a ZIP archive."
+
+            mpsBuilds.withType(MainBuild::class).forEach {
+                dependsOn(it.assembleTask)
+
+                into(it.buildProjectName) {
+                    from(it.artifactsDirectory)
+                }
+            }
+        }
+        return packageTask
     }
 
     private fun registerGroupingTasks(
@@ -160,50 +214,19 @@ open class MpsPlugin @Inject constructor(
         }
 
         tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(test) }
-
-        val packageMps = tasks.register("packageMps") {
-            group = LifecycleBasePlugin.BUILD_GROUP
-            description = "Packages the artifacts of all main MPS modules into ZIP archives."
-
-            dependsOn(Callable { mpsBuilds.withType(MainBuild::class.java).map { it.packageTask.get() } })
-        }
-
-        tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(packageMps) }
     }
 
-    private fun configureDefaultConfiguration(
-        configuration: Configuration, generationConfiguration: Provider<Configuration>,
-        providers: ProviderFactory,
-        objects: ObjectFactory,
-        mpsBuilds: PolymorphicDomainObjectContainer<MpsBuild>
-    ) {
-        configuration.extendsFrom(generationConfiguration.get())
-
-        configuration.outgoing.artifacts(providers.provider {
-            mpsBuilds.withType(MainBuild::class.java).map { it.packageTask }
-        })
-
-        configuration.isCanBeConsumed = true
-        configuration.isCanBeResolved = false
-
-        // Add an attribute to keep Gradle happy ("variant must have at least one attribute")
-        configuration.attributes.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class, Usage.JAVA_RUNTIME))
-
-    }
-
-    private fun registerMpsComponentFromConfiguration(
+    private fun registerMpsComponent(
         components: SoftwareComponentContainer,
-        configuration: Configuration
+        apiElements: Provider<out Configuration>
     ) {
         val mpsComponent = softwareComponentFactory.adhoc("mps")
-        mpsComponent.addVariantsFromConfiguration(configuration) {
-            mapToMavenScope("compile")
-        }
+        mpsComponent.addVariantsFromConfiguration(apiElements.get()) { mapToMavenScope("compile") }
         components.add(mpsComponent)
     }
 
     private fun registerMpsConfiguration(configurations: ConfigurationContainer): NamedDomainObjectProvider<Configuration> =
-        configurations.register("mps") {
+        configurations.register(ConfigurationNames.MPS) {
             isCanBeResolved = true
             isCanBeConsumed = false
 
@@ -213,57 +236,13 @@ open class MpsPlugin @Inject constructor(
             )
         }
 
-    private fun registerMpsHomeConfiguration(
-        configurations: ConfigurationContainer,
-        mpsConfiguration: NamedDomainObjectProvider<Configuration>
-    ): NamedDomainObjectProvider<Configuration> =
-        configurations.register("mpsHome") {
-            isCanBeResolved = true
-            isCanBeDeclared = false
-            isCanBeConsumed = false
-
-            attributes.attribute(
-                ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
-                ArtifactTransforms.UNZIP_MPS_TO_ARTIFACT_TYPE
-            )
-
-            extendsFrom(mpsConfiguration.get())
-        }
-
-    private fun registerGenerationConfiguration(configurations: ConfigurationContainer): NamedDomainObjectProvider<Configuration> =
-        configurations.register("generation") {
-            isCanBeResolved = true
-            isCanBeConsumed = false
-        }
-
-    private fun checkSingleFileInMpsConfiguration(files: FileCollection): File {
-        val configurationName = "mps"
-        val iterator = files.iterator()
-
-        check(iterator.hasNext()) {
-            "Expected configuration '$configurationName' to contain exactly one file, however, it contains no files. " +
-                    "Make sure you add a dependency on the appropriate version of MPS to the '$configurationName' " +
-                    "configuration."
-        }
-
-        val singleFile = iterator.next()
-
-        check(!iterator.hasNext()) {
-            "Expected configuration '$configurationName' to contain exactly one file, however, it contains multiple " +
-                    "files. Make sure you only add a single dependency to the '$configurationName' configuration."
-        }
-
-        return singleFile!!
-    }
-
-
     private fun registerMpsDefaultsExtension(
         extensions: ExtensionContainer,
         layout: ProjectLayout,
-        mpsHomeConfiguration: Provider<Configuration>
+        mpsConfiguration: Provider<out Configuration>
     ): MpsDefaultsExtension =
         extensions.create<MpsDefaultsExtension>("mpsDefaults").apply {
-            mpsHome.convention(layout.dir(mpsHomeConfiguration.map(::checkSingleFileInMpsConfiguration)))
+            mpsHome.convention(layout.dir(mpsConfiguration.flatMap(ArtifactTransforms::getMpsRoot)))
             mpsLibrariesDirectory.convention(layout.buildDirectory.dir("dependencies"))
             javaLauncher.convention(extensions.getByType<JbrToolchainExtension>().javaLauncher)
             antClasspath.convention(mpsHome.dir("lib/ant/lib").map {
@@ -327,19 +306,6 @@ open class MpsPlugin @Inject constructor(
                     buildFile = build.buildFile
                     targets.set(listOf("assemble"))
                 })
-
-                build.packageTask = tasks.register("package${capitalize(build.name)}", Zip::class) {
-                    description = "Packages the artifacts of '${build.name}' build into a ZIP archive."
-                    group = LifecycleBasePlugin.BUILD_GROUP
-
-                    dependsOn(build.assembleTask)
-
-                    into(build.buildProjectName)
-                    from(build.artifactsDirectory)
-
-                    archiveBaseName = build.buildProjectName
-
-                }
             }
 
             is TestBuild -> {

@@ -61,9 +61,4 @@ abstract class MainBuild(name: String) : MpsBuild(name) {
      * The task that forks Ant to run the `assemble` target of [buildFile].
      */
     abstract val assembleTask: Property<RunAnt>
-
-    /**
-     * The task to package the generated artifacts into a zip file.
-     */
-    abstract val packageTask: Property<Zip>
 }
