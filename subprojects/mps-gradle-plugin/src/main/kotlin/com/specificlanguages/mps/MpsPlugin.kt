@@ -9,7 +9,6 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentContainer
 import org.gradle.api.component.SoftwareComponentFactory
-import org.gradle.api.file.ConfigurableFileTree
 import org.gradle.api.file.Directory
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.ProjectLayout
@@ -411,17 +410,5 @@ open class MpsPlugin @Inject constructor(
 
             pathVariables.putAll(mpsDefaults.pathVariables)
         }
-    }
-
-    private fun projectDirExcludingBuildDir(project: Project): ConfigurableFileTree {
-        val projectDir = project.projectDir
-        val projectTree = project.fileTree(projectDir)
-
-        val buildDir = project.layout.buildDirectory.get().asFile
-        if (buildDir.startsWith(projectDir)) {
-            projectTree.exclude(buildDir.relativeTo(projectDir).path)
-        }
-
-        return projectTree
     }
 }
