@@ -4,6 +4,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Incubating
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
@@ -20,6 +21,7 @@ import org.gradle.process.ExecOperations
 import org.gradle.process.JavaExecSpec
 import org.gradle.work.DisableCachingByDefault
 import java.io.File
+import java.nio.file.Files
 import javax.inject.Inject
 
 /**
@@ -31,6 +33,9 @@ abstract class RunAnt : DefaultTask() {
 
     @get:Inject
     protected abstract val execOperations: ExecOperations
+
+    @get:Inject
+    protected abstract val fileSystemOperations: FileSystemOperations
 
     @get:Inject
     protected abstract val toolchains: JavaToolchainService
@@ -80,9 +85,19 @@ abstract class RunAnt : DefaultTask() {
 
     /**
      * Working directory for the forked JVM. Default is the Gradle-provided temporary directory of the task.
+     *
+     * The working directory is deleted before each run in order to ensure clean execution. This is controlled by
+     * [preserveWorkingDirectory].
      */
     @get:Internal
     abstract val workingDirectory: DirectoryProperty
+
+    /**
+     * Indicates whether to preserve working directory. Working directory is deleted by default unless it is set to
+     * a path outside the build directory.
+     */
+    @get:Internal
+    abstract val preserveWorkingDirectory: Property<Boolean>
 
     init {
         javaLauncher.convention(toolchains.launcherFor({
@@ -95,10 +110,20 @@ abstract class RunAnt : DefaultTask() {
         environment.putAll(project.providers.environmentVariablesPrefixedBy(""))
 
         workingDirectory.convention(project.layout.dir(project.provider { temporaryDir }))
+
+        preserveWorkingDirectory.convention(workingDirectory.zip(project.layout.buildDirectory) { wd, bd ->
+            wd.asFile.startsWith(bd.asFile)
+        })
     }
 
     @TaskAction
     fun build() {
+        if (!preserveWorkingDirectory.get()) {
+            val dir = workingDirectory.get()
+            fileSystemOperations.delete { delete(dir) }
+            Files.createDirectory(workingDirectory.get().asFile.toPath())
+        }
+
         execOperations.javaexec {
             workingDir = this@RunAnt.workingDirectory.get().asFile
             executable = this@RunAnt.javaLauncher.get().executablePath.toString()

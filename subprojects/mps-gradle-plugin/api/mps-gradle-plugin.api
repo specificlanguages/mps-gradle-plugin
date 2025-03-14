@@ -61,10 +61,12 @@ public abstract class com/specificlanguages/mps/RunAnt : org/gradle/api/DefaultT
 	public abstract fun getClasspath ()Lorg/gradle/api/file/ConfigurableFileCollection;
 	public abstract fun getEnvironment ()Lorg/gradle/api/provider/MapProperty;
 	protected abstract fun getExecOperations ()Lorg/gradle/process/ExecOperations;
+	protected abstract fun getFileSystemOperations ()Lorg/gradle/api/file/FileSystemOperations;
 	public abstract fun getJavaLauncher ()Lorg/gradle/api/provider/Property;
 	public abstract fun getJvmArguments ()Lorg/gradle/api/provider/ListProperty;
 	public abstract fun getOptions ()Lorg/gradle/api/provider/ListProperty;
 	public abstract fun getPathProperties ()Lorg/gradle/api/provider/MapProperty;
+	public abstract fun getPreserveWorkingDirectory ()Lorg/gradle/api/provider/Property;
 	public abstract fun getTargets ()Lorg/gradle/api/provider/ListProperty;
 	protected abstract fun getToolchains ()Lorg/gradle/jvm/toolchain/JavaToolchainService;
 	public abstract fun getValueProperties ()Lorg/gradle/api/provider/MapProperty;
