@@ -11,6 +11,7 @@ public abstract class com/specificlanguages/mps/BundledDependency : org/gradle/a
 public abstract class com/specificlanguages/mps/GenerateBuildScripts : org/gradle/api/DefaultTask {
 	public fun <init> ()V
 	public abstract fun getBuildSolutionDescriptors ()Lorg/gradle/api/file/ConfigurableFileCollection;
+	public abstract fun getEnvironment ()Lorg/gradle/api/provider/MapProperty;
 	protected abstract fun getExecOperations ()Lorg/gradle/process/ExecOperations;
 	public abstract fun getGenerateBackendClasspath ()Lorg/gradle/api/file/ConfigurableFileCollection;
 	public abstract fun getJavaLauncher ()Lorg/gradle/api/provider/Property;

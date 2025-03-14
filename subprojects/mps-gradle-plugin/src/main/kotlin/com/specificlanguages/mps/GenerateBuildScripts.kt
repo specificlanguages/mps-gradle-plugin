@@ -49,6 +49,16 @@ abstract class GenerateBuildScripts : DefaultTask() {
     @get:Internal("not considered inputs")
     abstract val pathVariables: MapProperty<String, File>
 
+    /**
+     * Environment variables for the forked JVM. Defaults to the environment of the current process.
+     */
+    @get:Internal
+    abstract val environment: MapProperty<String, String>
+
+    init {
+        environment.putAll(project.providers.environmentVariablesPrefixedBy(""))
+    }
+
     @TaskAction
     fun make() {
         val moduleNames = buildSolutionDescriptors.map { file ->
@@ -76,6 +86,9 @@ abstract class GenerateBuildScripts : DefaultTask() {
 
             classpath(objects.fileTree().from(mpsHome).include("lib/**/*.jar"))
             classpath(generateBackendClasspath)
+
+            @Suppress("USELESS_CAST")
+            environment = this@GenerateBuildScripts.environment.get() as Map<String, *>
 
             mainClass.set("de.itemis.mps.gradle.generate.MainKt")
 
