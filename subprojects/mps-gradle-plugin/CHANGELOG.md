@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.0-pre2
+
+This version fixes a few bugs in 2.0.0-pre1 and introduces fine-grained configurations named consistently with Gradle
+Java plugins. The existing `generation` configuration is renamed to `api` and a new configuration, `testImplementation`,
+is introduced for test-only dependencies.
+
+Even though MPS does not distinguish between 'runtime' and 'compile' dependencies like the Java ecosystem does,
+I believe it will be beneficial to make this distinction in this plugin at least, in the hope that it may be used by
+third-party tools in the future to guard against implementation dependencies leaking into the library interface.
+
+### Added
+
+- Fine-grained dependencies (`api`, `testImplementation`, etc.).
+- `GenerateBuildScripts.environment` for specifying the environment. Defaults to the environment of the current process.
+- `RunAnt` will delete its working directory unless told not to.
+
+### Fixed
+
+- `RunAnt` environment now defaults to the environment of the current process.
+- The plugin no longer causes all `RunAnt` and `GenerateBuildScript` tasks to be eagerly realized (created).
+
+## Changed
+
+- `generation` configuration renamed to `api`.
+- `mpsDefaults.dependenciesDirectory` renamed to `mpsLibrariesDirectory` to be more specific.
+- `resolveGenerationDependencies` task renamed to `resolveMpsLibraries` as it resolves all dependencies, not just
+  generation-time.
+
 ## 2.0.0-pre1
 
 Breaking changes are to be expected until the final 2.0.0 release.
