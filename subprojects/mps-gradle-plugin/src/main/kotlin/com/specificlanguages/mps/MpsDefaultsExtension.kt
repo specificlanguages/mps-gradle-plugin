@@ -17,9 +17,9 @@ interface MpsDefaultsExtension {
     val mpsHome: DirectoryProperty
 
     /**
-     * The directory where dependencies will be unpacked. Defaults to `$buildDir/dependencies`.
+     * The directory where MPS libraries will be unpacked. Defaults to `$buildDir/dependencies`.
      */
-    val dependenciesDirectory: DirectoryProperty
+    val mpsLibrariesDirectory: DirectoryProperty
 
     /**
      * The Java executable that [RunAnt] will use by default to run Ant. By default, the launcher provided by

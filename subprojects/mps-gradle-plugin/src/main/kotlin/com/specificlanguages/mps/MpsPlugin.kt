@@ -86,9 +86,9 @@ open class MpsPlugin @Inject constructor(
 
             val resolveGenerationDependencies by tasks.registering(Sync::class) {
                 from(generationConfiguration.map { cfg -> cfg.map(project::zipTree) })
-                into(mpsDefaults.dependenciesDirectory)
+                into(mpsDefaults.mpsLibrariesDirectory)
                 group = "build setup"
-                description = "Downloads and unpacks dependencies of '${generationConfiguration.name}' configuration."
+                description = "Downloads and extracts all external MPS libraries."
             }
 
             val setupTask = tasks.register("setup", Sync::class) {
@@ -265,7 +265,7 @@ open class MpsPlugin @Inject constructor(
     ): MpsDefaultsExtension =
         extensions.create<MpsDefaultsExtension>("mpsDefaults").apply {
             mpsHome.convention(layout.dir(mpsHomeConfiguration.map(::checkSingleFileInMpsConfiguration)))
-            dependenciesDirectory.convention(layout.buildDirectory.dir("dependencies"))
+            mpsLibrariesDirectory.convention(layout.buildDirectory.dir("dependencies"))
             javaLauncher.convention(extensions.getByType<JbrToolchainExtension>().javaLauncher)
             antClasspath.convention(mpsHome.dir("lib/ant/lib").map {
                 it.asFileTree.matching {

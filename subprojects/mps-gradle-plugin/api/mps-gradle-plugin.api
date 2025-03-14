@@ -42,9 +42,9 @@ public abstract class com/specificlanguages/mps/MpsBuild : org/gradle/api/Named 
 
 public abstract interface class com/specificlanguages/mps/MpsDefaultsExtension {
 	public abstract fun getAntClasspath ()Lorg/gradle/api/file/ConfigurableFileCollection;
-	public abstract fun getDependenciesDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 	public abstract fun getJavaLauncher ()Lorg/gradle/api/provider/Property;
 	public abstract fun getMpsHome ()Lorg/gradle/api/file/DirectoryProperty;
+	public abstract fun getMpsLibrariesDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 	public abstract fun getPathVariables ()Lorg/gradle/api/provider/MapProperty;
 }
 
