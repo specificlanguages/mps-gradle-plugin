@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.0-pre3
+
+### Changed
+
+- `MpsBuild.buildProjectName` removed, its value will be derived from `MpsBuild.buildArtifactsDirectory` which is now
+  required.
+
+  The rationale for this change is that the artifacts directory is more important for the functionality of the plugin.
+  Also, users did not quite understand what to provide for 'build project name', probably because it was unexpected.
+
 ## 2.0.0-pre2
 
 This version fixes a few bugs in 2.0.0-pre1 and introduces fine-grained configurations named consistently with Gradle

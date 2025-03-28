@@ -175,8 +175,8 @@ open class MpsPlugin @Inject constructor(
             mpsBuilds.withType(MainBuild::class).forEach {
                 dependsOn(it.assembleTask)
 
-                into(it.buildProjectName) {
-                    from(it.artifactsDirectory)
+                into(it.buildArtifactsDirectory.asFile.map(File::getName)) {
+                    from(it.buildArtifactsDirectory)
                 }
             }
         }
@@ -295,9 +295,6 @@ open class MpsPlugin @Inject constructor(
 
         when (build) {
             is MainBuild -> {
-                build.artifactsDirectory.convention(layout.buildDirectory.dir(build.buildProjectName.map { "artifacts/$it" }))
-
-
                 build.assembleTask.assign(tasks.register("assemble${capitalize(build.name)}", RunAnt::class.java) {
                     group = "build"
                     description = "Runs 'assemble' target of the '${build.name}' build."

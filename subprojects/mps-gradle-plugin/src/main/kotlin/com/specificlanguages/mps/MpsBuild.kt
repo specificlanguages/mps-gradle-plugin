@@ -1,12 +1,10 @@
 package com.specificlanguages.mps
 
-import com.specificlanguages.mps.RunAnt
 import org.gradle.api.Named
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.SetProperty
-import org.gradle.api.tasks.bundling.Zip
 
 abstract class MpsBuild : Named {
     /**
@@ -15,14 +13,14 @@ abstract class MpsBuild : Named {
     abstract val buildSolutionDescriptor: RegularFileProperty
 
     /**
-     * The name of the build project (the root node) in MPS.
-     */
-    abstract val buildProjectName: Property<String>
-
-    /**
      * The generated Ant script.
      */
     abstract val buildFile: RegularFileProperty
+
+    /**
+     * The directory where the build places its artifacts. Typically `$buildDir/artifacts/[build-project-name]`.
+     */
+    abstract val buildArtifactsDirectory: DirectoryProperty
 
     /**
      * The task that forks Ant to run the `generate` target of [buildFile].
@@ -34,11 +32,6 @@ abstract class MpsBuild : Named {
      * the [assemble task][MainBuild.assembleTask] of the corresponding build.
      */
     abstract val dependencies: SetProperty<MainBuild>
-
-    /**
-     * The directory where the build places its artifacts. Defaults to `$buildDir/artifacts/`[buildProjectName].
-     */
-    abstract val artifactsDirectory: DirectoryProperty
 
     fun dependsOn(vararg builds: MainBuild) {
         dependencies.addAll(*builds)
