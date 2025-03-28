@@ -7,11 +7,8 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.bundling.Zip
-import javax.inject.Inject
 
-abstract class MpsBuild @Inject constructor(private val name: String) : Named {
-    override fun getName(): String = name
-
+abstract class MpsBuild : Named {
     /**
      * The .msd file of the build solution.
      */
@@ -48,7 +45,7 @@ abstract class MpsBuild @Inject constructor(private val name: String) : Named {
     }
 }
 
-abstract class TestBuild(name: String) : MpsBuild(name) {
+abstract class TestBuild : MpsBuild() {
     /**
      * The task that forks Ant to run the `check` target of [buildFile]. In MPS-generated Ant files `check` depends on
      * `assemble` and it is not possible to run `check` alone.
@@ -56,7 +53,7 @@ abstract class TestBuild(name: String) : MpsBuild(name) {
     abstract val assembleAndCheckTask: Property<RunAnt>
 }
 
-abstract class MainBuild(name: String) : MpsBuild(name) {
+abstract class MainBuild : MpsBuild() {
     /**
      * The task that forks Ant to run the `assemble` target of [buildFile].
      */
