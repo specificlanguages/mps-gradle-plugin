@@ -1,5 +1,6 @@
 package com.specificlanguages.mps
 
+import com.specificlanguages.mps.internal.capitalize
 import org.gradle.api.Named
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
@@ -25,7 +26,8 @@ abstract class MpsBuild : Named {
     /**
      * The task that forks Ant to run the `generate` target of [buildFile].
      */
-    abstract val generateTask: Property<RunAnt>
+    val generateTaskName: String
+        get() = "generate${capitalize(name)}"
 
     /**
      * Other builds that this build depends on. This translates to the dependency on
@@ -43,12 +45,14 @@ abstract class TestBuild : MpsBuild() {
      * The task that forks Ant to run the `check` target of [buildFile]. In MPS-generated Ant files `check` depends on
      * `assemble` and it is not possible to run `check` alone.
      */
-    abstract val assembleAndCheckTask: Property<RunAnt>
+    val assembleAndCheckTaskName: String
+        get() = "check${capitalize(name)}"
 }
 
 abstract class MainBuild : MpsBuild() {
     /**
      * The task that forks Ant to run the `assemble` target of [buildFile].
      */
-    abstract val assembleTask: Property<RunAnt>
+    val assembleTaskName: String
+        get() = "assemble${capitalize(name)}"
 }

@@ -3,6 +3,7 @@ package com.specificlanguages.mps
 import com.specificlanguages.jbrtoolchain.JbrToolchainExtension
 import com.specificlanguages.jbrtoolchain.JbrToolchainPlugin
 import com.specificlanguages.mps.internal.ConfigurationNames
+import com.specificlanguages.mps.internal.capitalize
 import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
@@ -64,7 +65,6 @@ private fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Tra
         }
     }
 
-private fun capitalize(s: String): String = s[0].uppercaseChar() + s.substring(1)
 
 @Suppress("unused", "DEPRECATION")
 open class MpsPlugin @Inject constructor(
@@ -173,7 +173,7 @@ open class MpsPlugin @Inject constructor(
             description = "Packages the artifacts of all main MPS builds into a ZIP archive."
 
             mpsBuilds.withType(MainBuild::class).forEach {
-                dependsOn(it.assembleTask)
+                dependsOn(it.assembleTaskName)
 
                 into(it.buildArtifactsDirectory.asFile.map(File::getName)) {
                     from(it.buildArtifactsDirectory)
@@ -190,21 +190,21 @@ open class MpsPlugin @Inject constructor(
         tasks.register("generateMps") {
             group = LifecycleBasePlugin.BUILD_GROUP
             description = "Runs 'generate' tasks of all MPS builds."
-            dependsOn(Callable { mpsBuilds.map { it.generateTask } })
+            dependsOn(Callable { mpsBuilds.map { it.generateTaskName } })
         }
 
         tasks.register("assembleMps") {
             group = LifecycleBasePlugin.BUILD_GROUP
             description = "Runs 'assemble' tasks of all MPS main builds."
 
-            dependsOn(Callable { mpsBuilds.withType(MainBuild::class.java).map { it.assembleTask } })
+            dependsOn(Callable { mpsBuilds.withType(MainBuild::class.java).map { it.assembleTaskName } })
         }
 
         val testMps = tasks.register("testMps") {
             group = LifecycleBasePlugin.VERIFICATION_GROUP
             description = "Runs 'check' tasks of all MPS test builds."
 
-            dependsOn(Callable { mpsBuilds.withType(TestBuild::class.java).map { it.assembleAndCheckTask } })
+            dependsOn(Callable { mpsBuilds.withType(TestBuild::class.java).map { it.assembleAndCheckTaskName } })
         }
 
         val test = tasks.register("test") {
@@ -282,7 +282,7 @@ open class MpsPlugin @Inject constructor(
         layout: ProjectLayout,
         generateBuildScriptsTask: TaskProvider<out Task>
     ) {
-        build.generateTask.assign(tasks.register("generate${capitalize(build.name)}", RunAnt::class.java) {
+        tasks.register(build.generateTaskName, RunAnt::class.java) {
             group = "build"
             description = "Runs 'generate' target of the '${build.name}' build."
             dependsOn(generateBuildScriptsTask)
@@ -290,30 +290,30 @@ open class MpsPlugin @Inject constructor(
             buildFile = build.buildFile
             targets.set(listOf("generate"))
 
-            dependsOn(build.dependencies.map { it.map(MainBuild::assembleTask) })
-        })
+            dependsOn(build.dependencies.map { it.map(MainBuild::assembleTaskName) })
+        }
 
         when (build) {
             is MainBuild -> {
-                build.assembleTask.assign(tasks.register("assemble${capitalize(build.name)}", RunAnt::class.java) {
+                tasks.register(build.assembleTaskName, RunAnt::class.java) {
                     group = "build"
                     description = "Runs 'assemble' target of the '${build.name}' build."
-                    dependsOn(build.generateTask)
+                    dependsOn(build.generateTaskName)
 
                     buildFile = build.buildFile
                     targets.set(listOf("assemble"))
-                })
+                }
             }
 
             is TestBuild -> {
-                build.assembleAndCheckTask.assign(tasks.register("check${capitalize(build.name)}", RunAnt::class.java) {
+                tasks.register(build.assembleAndCheckTaskName, RunAnt::class.java) {
                     group = "build"
                     description = "Runs 'check' target of the '${build.name}' build."
-                    dependsOn(build.generateTask)
+                    dependsOn(build.generateTaskName)
 
                     buildFile = build.buildFile
                     targets.set(listOf("check"))
-                })
+                }
             }
         }
     }
