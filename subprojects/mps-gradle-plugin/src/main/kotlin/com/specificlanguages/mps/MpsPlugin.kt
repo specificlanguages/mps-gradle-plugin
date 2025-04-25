@@ -359,6 +359,20 @@ open class MpsPlugin @Inject constructor(
         tasks.withType(RunAnt::class.java).configureEach {
             javaLauncher.convention(mpsDefaults.javaLauncher)
             pathProperties.put("mps_home", mpsDefaults.mpsHome.asFile)
+            pathProperties.put("mps.home", mpsDefaults.mpsHome.asFile)
+            pathProperties.put(
+                "build.jna.library.path",
+                mpsDefaults.mpsHome.zip(providers.systemProperty("os.arch")) { mpsHome, osArch ->
+                    val jnaArch = when (osArch) {
+                        "x86_64" -> "amd64"
+                        else -> osArch
+                    }
+
+                    mpsHome.dir("lib/jna/$jnaArch").asFile }
+            )
+            pathProperties.put("build.mps.config.path", temporaryDir.resolve("config"))
+            pathProperties.put("build.mps.system.path", temporaryDir.resolve("system"))
+
             pathProperties.putAll(mpsDefaults.pathVariables)
 
             valueProperties.put("version", providers.provider { project.version.toString() })
