@@ -7,13 +7,22 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 2.0.0-pre3
 
+### Added
+
+- `MpsBuild.mpsProjectDirectory` property to support multiple MPS projects in a single Gradle project.
+- `MainBuild.published` property to control whether a build's artifacts are included in the published package.
+- `RunAnt`: pass additional path properties to Ant by default: `mps.home`, `build.jna.library.path`,
+  `build.mps.config.path`, and `build.mps.system.path`. The latter two properties are overridden to improve task
+  isolation.
+
 ### Changed
 
+- Task properties in MpsBuild classes replaced with task name getters:
 - `MpsBuild.buildProjectName` removed, its value will be derived from `MpsBuild.buildArtifactsDirectory` which is now
   required.
 
   The rationale for this change is that the artifacts directory is more important for the functionality of the plugin.
-  Also, users did not quite understand what to provide for 'build project name', probably because it was unexpected.
+  Also, users did not quite understand what to provide for 'build project name,' probably because it was unexpected.
 
 ## 2.0.0-pre2
 
