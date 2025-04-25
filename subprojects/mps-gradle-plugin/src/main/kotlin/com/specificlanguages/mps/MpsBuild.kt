@@ -69,4 +69,15 @@ abstract class MainBuild : MpsBuild() {
      */
     val assembleTaskName: String
         get() = "assemble${capitalize(name)}"
+
+    /**
+     * Indicates whether the build is internal or published (packaged). Published builds have their artifacts included
+     * in the package produced by `packageMps` and published by `components["mps"]`. By default, all main builds
+     * are published.
+     */
+    abstract val published: Property<Boolean>
+
+    init {
+        published.convention(true)
+    }
 }

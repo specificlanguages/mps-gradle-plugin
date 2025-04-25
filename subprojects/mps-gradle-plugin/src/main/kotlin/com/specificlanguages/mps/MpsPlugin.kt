@@ -174,13 +174,17 @@ open class MpsPlugin @Inject constructor(
             group = LifecycleBasePlugin.BUILD_GROUP
             description = "Packages the artifacts of all main MPS builds into a ZIP archive."
 
-            mpsBuilds.withType(MainBuild::class).forEach {
-                dependsOn(it.assembleTaskName)
+            fun addToPackageIfPublished(build: MainBuild) {
+                val task = this@register
+                task.dependsOn(build.assembleTaskName)
 
-                into(it.buildArtifactsDirectory.asFile.map(File::getName)) {
-                    from(it.buildArtifactsDirectory)
+                task.into(build.buildArtifactsDirectory.asFile.map(File::getName)) {
+                    from(build.buildArtifactsDirectory)
+                    exclude { !build.published.get() }
                 }
             }
+
+            mpsBuilds.withType(MainBuild::class.java).all { addToPackageIfPublished(this) }
         }
         return packageTask
     }

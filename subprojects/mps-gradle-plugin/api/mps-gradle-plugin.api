@@ -24,6 +24,7 @@ public abstract class com/specificlanguages/mps/GenerateBuildScripts : org/gradl
 public abstract class com/specificlanguages/mps/MainBuild : com/specificlanguages/mps/MpsBuild {
 	public fun <init> ()V
 	public final fun getAssembleTaskName ()Ljava/lang/String;
+	public abstract fun getPublished ()Lorg/gradle/api/provider/Property;
 }
 
 public abstract class com/specificlanguages/mps/MpsBuild : org/gradle/api/Named {
