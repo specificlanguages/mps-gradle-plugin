@@ -3,11 +3,25 @@ package com.specificlanguages.mps
 import com.specificlanguages.mps.internal.capitalize
 import org.gradle.api.Named
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.SetProperty
+import javax.inject.Inject
 
 abstract class MpsBuild : Named {
+    @get:Inject
+    protected abstract val layout: ProjectLayout
+
+    /**
+     * The MPS project that contains the build solution
+     */
+    abstract val mpsProjectDirectory: DirectoryProperty
+
+    init {
+        mpsProjectDirectory.convention(layout.projectDirectory)
+    }
+
     /**
      * The .msd file of the build solution.
      */

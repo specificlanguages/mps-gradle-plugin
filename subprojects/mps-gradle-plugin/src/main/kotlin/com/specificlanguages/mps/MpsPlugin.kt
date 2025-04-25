@@ -121,16 +121,18 @@ open class MpsPlugin @Inject constructor(
             configureTaskDefaults(tasks, providers, mpsDefaults, executeGeneratorsConfiguration)
 
             val generateBuildScriptsTask = tasks.register("generateBuildScripts", GenerateBuildScripts::class.java)
-            val mpsBuilds = registerMpsBuildsExtension(extensions, tasks, objects, layout, generateBuildScriptsTask)
+            val mpsBuilds = registerMpsBuildsExtension(extensions, tasks, objects, generateBuildScriptsTask)
 
             generateBuildScriptsTask.configure {
                 dependsOn(setupTask)
-                buildSolutionDescriptors.from(Callable { mpsBuilds.map(MpsBuild::buildSolutionDescriptor) })
+                buildSolutionDescriptorsByProject.putAll(provider {
+                    mpsBuilds.groupBy({ it.mpsProjectDirectory.get() }, { it.buildSolutionDescriptor.get() })
+                })
             }
 
             registerGroupingTasks(tasks, mpsBuilds)
 
-            // Extend clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
+            // Extend the clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
             // classes_gen, tests_gen, tests_gen.caches.
             tasks.named(BasePlugin.CLEAN_TASK_NAME, Delete::class) {
                 delete({ allGeneratedDirs(layout.projectDirectory).asIterable() })
@@ -261,7 +263,6 @@ open class MpsPlugin @Inject constructor(
         extensions: ExtensionContainer,
         tasks: TaskContainer,
         objects: ObjectFactory,
-        layout: ProjectLayout,
         generateBuildScriptsTask: TaskProvider<out Task>
     ): ExtensiblePolymorphicDomainObjectContainer<MpsBuild> {
         val mpsBuilds = objects.polymorphicDomainObjectContainer(MpsBuild::class.java)
@@ -270,7 +271,7 @@ open class MpsPlugin @Inject constructor(
         extensions.add(typeOf<PolymorphicDomainObjectContainer<MpsBuild>>(), "mpsBuilds", mpsBuilds)
 
         mpsBuilds.all {
-            configureTasks(this, tasks, layout, generateBuildScriptsTask)
+            configureTasks(this, tasks, generateBuildScriptsTask)
         }
 
         return mpsBuilds
@@ -279,7 +280,6 @@ open class MpsPlugin @Inject constructor(
     private fun configureTasks(
         build: MpsBuild,
         tasks: TaskContainer,
-        layout: ProjectLayout,
         generateBuildScriptsTask: TaskProvider<out Task>
     ) {
         tasks.register(build.generateTaskName, RunAnt::class.java) {
@@ -366,7 +366,6 @@ open class MpsPlugin @Inject constructor(
         }
 
         tasks.withType(GenerateBuildScripts::class.java).configureEach {
-            projectDirectory.convention(project.layout.projectDirectory)
             javaLauncher.convention(mpsDefaults.javaLauncher)
             generateBackendClasspath.convention(generateBackendConfiguration)
             mpsHome.convention(mpsDefaults.mpsHome)
