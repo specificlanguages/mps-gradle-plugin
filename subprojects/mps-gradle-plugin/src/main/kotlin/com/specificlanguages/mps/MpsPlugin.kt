@@ -138,14 +138,14 @@ open class MpsPlugin @Inject constructor(
                 delete({ allGeneratedDirs(layout.projectDirectory).asIterable() })
             }
 
-            val packageTask = registerPackageTask(mpsBuilds, this.tasks)
+            val packageZipTask = registerPackageZipTask(mpsBuilds, this.tasks)
 
             val apiElementsConfiguration =
-                registerApiElementsConfiguration(apiConfiguration, packageTask, configurations, objects)
+                registerApiElementsConfiguration(apiConfiguration, packageZipTask, configurations, objects)
 
             configurations[Dependency.DEFAULT_CONFIGURATION].apply {
                 extendsFrom(apiElementsConfiguration.get())
-                outgoing.artifact(packageTask)
+                outgoing.artifact(packageZipTask)
             }
 
             registerMpsComponent(components, apiElementsConfiguration)
@@ -154,27 +154,27 @@ open class MpsPlugin @Inject constructor(
 
     private fun registerApiElementsConfiguration(
         apiConfiguration: Provider<out Configuration>,
-        packageTask: TaskProvider<Zip>,
+        packageZipTask: TaskProvider<Zip>,
         configurations: ConfigurationContainer,
         objects: ObjectFactory
     ): NamedDomainObjectProvider<ConsumableConfiguration> = configurations.consumable(ConfigurationNames.API_ELEMENTS) {
         extendsFrom(apiConfiguration.get())
-        this.outgoing.artifact(packageTask)
-        this.attributes.attribute<Usage>(
+        this.outgoing.artifact(packageZipTask)
+        this.attributes.attribute(
             Usage.USAGE_ATTRIBUTE,
             objects.named(Usage::class, Usage.JAVA_API)
         )
     }
 
-    private fun registerPackageTask(
-        mpsBuilds: ExtensiblePolymorphicDomainObjectContainer<MpsBuild>,
+    private fun registerPackageZipTask(
+        mpsBuilds: DomainObjectCollection<MpsBuild>,
         tasks: TaskContainer
     ): TaskProvider<Zip> {
-        val packageTask = tasks.register("package", Zip::class) {
+        val task = tasks.register("packageZip", Zip::class.java) {
             group = LifecycleBasePlugin.BUILD_GROUP
-            description = "Packages the artifacts of all main MPS builds into a ZIP archive."
+            description = "Packages the artifacts of all main published MPS builds into a ZIP archive."
 
-            fun addToPackageIfPublished(build: MainBuild) {
+            fun addToZipIfPublished(build: MainBuild) {
                 val task = this@register
                 task.dependsOn(build.assembleTaskName)
 
@@ -184,9 +184,9 @@ open class MpsPlugin @Inject constructor(
                 }
             }
 
-            mpsBuilds.withType(MainBuild::class.java).all { addToPackageIfPublished(this) }
+            mpsBuilds.withType(MainBuild::class.java).all { addToZipIfPublished(this) }
         }
-        return packageTask
+        return task
     }
 
     private fun registerGroupingTasks(

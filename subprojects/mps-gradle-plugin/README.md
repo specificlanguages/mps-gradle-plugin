@@ -183,8 +183,8 @@ The plugin creates the following tasks:
   version}`. Since 1.2.2 the task specifies all `*.mps` files in all directories as its inputs.
 * `checkMps`: runs the `check` target of the generated Ant script. The `check` lifecycle task is set to depend
   on `checkMps`.
-* `package`: packages the modules built by `assembleMps` in a ZIP. The package is added to the `default` configuration
-  (created by the Gradle Base plugin).
+* `packageZip`: packages the modules built by `assembleMps` into a zip archive. The zip is added to the `default`
+  configuration (created by the Gradle Base plugin) and to the `mps` component.
 
 The plugin creates a software component named `mps` to represent the published code and adds the `default` configuration
 to it.

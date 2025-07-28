@@ -7,6 +7,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 2.0.0-pre4
 
+### Changed
+
+- `package` task renamed to `packageZip` to avoid conflict with the `package` reserved word.
+
 ## 2.0.0-pre3
 
 ### Added
