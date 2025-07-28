@@ -1,11 +1,10 @@
 public abstract class com/specificlanguages/mps/BundledDependency : org/gradle/api/Named {
-	public fun <init> (Ljava/lang/String;)V
-	public abstract fun getConfiguration ()Lorg/gradle/api/provider/Property;
-	public final fun getConfigurationName ()Ljava/lang/String;
+	public fun <init> (Ljava/lang/String;Lorg/gradle/api/NamedDomainObjectProvider;Lorg/gradle/api/NamedDomainObjectProvider;)V
+	public final fun getConfiguration ()Lorg/gradle/api/NamedDomainObjectProvider;
 	public abstract fun getDependency ()Lorg/gradle/api/artifacts/dsl/DependencyCollector;
 	public abstract fun getDestinationDir ()Lorg/gradle/api/file/DirectoryProperty;
 	public fun getName ()Ljava/lang/String;
-	public abstract fun getSyncTask ()Lorg/gradle/api/provider/Property;
+	public final fun getSyncTask ()Lorg/gradle/api/NamedDomainObjectProvider;
 }
 
 public abstract class com/specificlanguages/mps/GenerateBuildScripts : org/gradle/api/DefaultTask {
@@ -22,19 +21,19 @@ public abstract class com/specificlanguages/mps/GenerateBuildScripts : org/gradl
 }
 
 public abstract class com/specificlanguages/mps/MainBuild : com/specificlanguages/mps/MpsBuild {
-	public fun <init> ()V
-	public final fun getAssembleTaskName ()Ljava/lang/String;
+	public fun <init> (Lorg/gradle/api/tasks/TaskProvider;Lorg/gradle/api/tasks/TaskProvider;)V
+	public final fun getAssembleTask ()Lorg/gradle/api/tasks/TaskProvider;
 	public abstract fun getPublished ()Lorg/gradle/api/provider/Property;
 }
 
 public abstract class com/specificlanguages/mps/MpsBuild : org/gradle/api/Named {
-	public fun <init> ()V
+	public fun <init> (Lorg/gradle/api/tasks/TaskProvider;)V
 	public final fun dependsOn ([Lcom/specificlanguages/mps/MainBuild;)V
 	public abstract fun getBuildArtifactsDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 	public abstract fun getBuildFile ()Lorg/gradle/api/file/RegularFileProperty;
 	public abstract fun getBuildSolutionDescriptor ()Lorg/gradle/api/file/RegularFileProperty;
 	public abstract fun getDependencies ()Lorg/gradle/api/provider/SetProperty;
-	public final fun getGenerateTaskName ()Ljava/lang/String;
+	public final fun getGenerateTask ()Lorg/gradle/api/tasks/TaskProvider;
 	protected abstract fun getLayout ()Lorg/gradle/api/file/ProjectLayout;
 	public abstract fun getMpsProjectDirectory ()Lorg/gradle/api/file/DirectoryProperty;
 }
@@ -73,7 +72,7 @@ public abstract class com/specificlanguages/mps/RunAnt : org/gradle/api/DefaultT
 }
 
 public abstract class com/specificlanguages/mps/TestBuild : com/specificlanguages/mps/MpsBuild {
-	public fun <init> ()V
-	public final fun getAssembleAndCheckTaskName ()Ljava/lang/String;
+	public fun <init> (Lorg/gradle/api/tasks/TaskProvider;Lorg/gradle/api/tasks/TaskProvider;)V
+	public final fun getAssembleAndCheckTask ()Lorg/gradle/api/tasks/TaskProvider;
 }
 

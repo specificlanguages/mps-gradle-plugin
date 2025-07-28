@@ -9,6 +9,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Domain objects now contain references to tasks and configurations as read-only named providers rather than properties
+  or names. For example, `MpsBuild.generateTaskName: String` becomes `MpsBuild.generateTask: TaskProvider<out RunAnt>`.
 - `package` task renamed to `packageZip` to avoid conflict with the `package` reserved word.
 
 ## 2.0.0-pre3

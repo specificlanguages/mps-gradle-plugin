@@ -2,9 +2,11 @@ package com.specificlanguages.mps
 
 import com.specificlanguages.jbrtoolchain.JbrToolchainExtension
 import com.specificlanguages.jbrtoolchain.JbrToolchainPlugin
+import com.specificlanguages.mps.internal.createBundledDependenciesContainer
 import com.specificlanguages.mps.internal.ConfigurationNames
-import com.specificlanguages.mps.internal.capitalize
+import com.specificlanguages.mps.internal.createMpsBuildsContainer
 import org.gradle.api.*
+import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.ConsumableConfiguration
@@ -27,6 +29,7 @@ import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.jvm.toolchain.JavaToolchainService
 import org.gradle.kotlin.dsl.*
+import org.gradle.kotlin.dsl.typeOf
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import java.io.File
 import java.util.concurrent.Callable
@@ -55,17 +58,6 @@ private fun allGeneratedDirs(root: Directory): Sequence<File> {
     }
 }
 
-private fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Transformer<String?, String> =
-    Transformer { filename ->
-        val ra = config.get().resolvedConfiguration.resolvedArtifacts.find { ra -> ra.file.name == filename }!!
-        if (ra.classifier != null) {
-            "${ra.name}-${ra.classifier}.${ra.extension}"
-        } else {
-            "${ra.name}.${ra.extension}"
-        }
-    }
-
-
 @Suppress("unused", "DEPRECATION")
 open class MpsPlugin @Inject constructor(
     private val softwareComponentFactory: SoftwareComponentFactory,
@@ -80,7 +72,12 @@ open class MpsPlugin @Inject constructor(
 
             val mpsConfiguration = registerMpsConfiguration(configurations)
             val mpsDefaults = registerMpsDefaultsExtension(extensions, layout, mpsConfiguration)
-            val bundledDependencies = registerBundledDependenciesExtension(tasks, configurations, objects, extensions)
+
+            val bundledDependencies = createBundledDependenciesContainer(objects, tasks, configurations)
+            extensions.add(
+                typeOf<NamedDomainObjectContainer<BundledDependency>>(), "bundledDependencies",
+                bundledDependencies
+            )
 
             val apiConfiguration = configurations.dependencyScope(ConfigurationNames.API)
 
@@ -121,7 +118,9 @@ open class MpsPlugin @Inject constructor(
             configureTaskDefaults(tasks, providers, mpsDefaults, executeGeneratorsConfiguration)
 
             val generateBuildScriptsTask = tasks.register("generateBuildScripts", GenerateBuildScripts::class.java)
-            val mpsBuilds = registerMpsBuildsExtension(extensions, tasks, objects, generateBuildScriptsTask)
+
+            val mpsBuilds = createMpsBuildsContainer(objects, tasks, generateBuildScriptsTask)
+            extensions.add(typeOf<PolymorphicDomainObjectContainer<MpsBuild>>(), "mpsBuilds", mpsBuilds)
 
             generateBuildScriptsTask.configure {
                 dependsOn(setupTask)
@@ -176,7 +175,7 @@ open class MpsPlugin @Inject constructor(
 
             fun addToZipIfPublished(build: MainBuild) {
                 val task = this@register
-                task.dependsOn(build.assembleTaskName)
+                task.dependsOn(build.assembleTask)
 
                 task.into(build.buildArtifactsDirectory.asFile.map(File::getName)) {
                     from(build.buildArtifactsDirectory)
@@ -191,26 +190,26 @@ open class MpsPlugin @Inject constructor(
 
     private fun registerGroupingTasks(
         tasks: TaskContainer,
-        mpsBuilds: ExtensiblePolymorphicDomainObjectContainer<MpsBuild>
+        mpsBuilds: DomainObjectCollection<MpsBuild>
     ) {
         tasks.register("generateMps") {
             group = LifecycleBasePlugin.BUILD_GROUP
             description = "Runs 'generate' tasks of all MPS builds."
-            dependsOn(Callable { mpsBuilds.map { it.generateTaskName } })
+            dependsOn(Callable { mpsBuilds.map { it.generateTask } })
         }
 
         tasks.register("assembleMps") {
             group = LifecycleBasePlugin.BUILD_GROUP
             description = "Runs 'assemble' tasks of all MPS main builds."
 
-            dependsOn(Callable { mpsBuilds.withType(MainBuild::class.java).map { it.assembleTaskName } })
+            dependsOn(Callable { mpsBuilds.withType(MainBuild::class.java).map { it.assembleTask } })
         }
 
         val testMps = tasks.register("testMps") {
             group = LifecycleBasePlugin.VERIFICATION_GROUP
             description = "Runs 'check' tasks of all MPS test builds."
 
-            dependsOn(Callable { mpsBuilds.withType(TestBuild::class.java).map { it.assembleAndCheckTaskName } })
+            dependsOn(Callable { mpsBuilds.withType(TestBuild::class.java).map { it.assembleAndCheckTask } })
         }
 
         val test = tasks.register("test") {
@@ -262,97 +261,6 @@ open class MpsPlugin @Inject constructor(
                 }
             })
         }
-
-    private fun registerMpsBuildsExtension(
-        extensions: ExtensionContainer,
-        tasks: TaskContainer,
-        objects: ObjectFactory,
-        generateBuildScriptsTask: TaskProvider<out Task>
-    ): ExtensiblePolymorphicDomainObjectContainer<MpsBuild> {
-        val mpsBuilds = objects.polymorphicDomainObjectContainer(MpsBuild::class.java)
-        mpsBuilds.registerBinding(MainBuild::class.java, MainBuild::class.java)
-        mpsBuilds.registerBinding(TestBuild::class.java, TestBuild::class.java)
-        extensions.add(typeOf<PolymorphicDomainObjectContainer<MpsBuild>>(), "mpsBuilds", mpsBuilds)
-
-        mpsBuilds.all {
-            configureTasks(this, tasks, generateBuildScriptsTask)
-        }
-
-        return mpsBuilds
-    }
-
-    private fun configureTasks(
-        build: MpsBuild,
-        tasks: TaskContainer,
-        generateBuildScriptsTask: TaskProvider<out Task>
-    ) {
-        tasks.register(build.generateTaskName, RunAnt::class.java) {
-            group = "build"
-            description = "Runs 'generate' target of the '${build.name}' build."
-            dependsOn(generateBuildScriptsTask)
-
-            buildFile = build.buildFile
-            targets.set(listOf("generate"))
-
-            dependsOn(build.dependencies.map { it.map(MainBuild::assembleTaskName) })
-        }
-
-        when (build) {
-            is MainBuild -> {
-                tasks.register(build.assembleTaskName, RunAnt::class.java) {
-                    group = "build"
-                    description = "Runs 'assemble' target of the '${build.name}' build."
-                    dependsOn(build.generateTaskName)
-
-                    buildFile = build.buildFile
-                    targets.set(listOf("assemble"))
-                }
-            }
-
-            is TestBuild -> {
-                tasks.register(build.assembleAndCheckTaskName, RunAnt::class.java) {
-                    group = "build"
-                    description = "Runs 'check' target of the '${build.name}' build."
-                    dependsOn(build.generateTaskName)
-
-                    buildFile = build.buildFile
-                    targets.set(listOf("check"))
-                }
-            }
-        }
-    }
-
-    private fun registerBundledDependenciesExtension(
-        tasks: TaskContainer,
-        configurations: ConfigurationContainer,
-        objects: ObjectFactory,
-        extensions: ExtensionContainer
-    ): NamedDomainObjectContainer<BundledDependency> {
-        val bundledDependencies = objects.domainObjectContainer(BundledDependency::class)
-        extensions.add(
-            typeOf<NamedDomainObjectContainer<BundledDependency>>(), "bundledDependencies",
-            bundledDependencies
-        )
-
-        bundledDependencies.all {
-            val bd = this
-
-            bd.configuration = configurations.register(configurationName) {
-                isCanBeConsumed = false
-                fromDependencyCollector(bd.dependency)
-            }
-
-            bd.syncTask = tasks.register("resolve" + capitalize(bd.name), Sync::class) {
-                description = "Downloads dependencies of stub configuration '${bd.name}'."
-                from(bd.configuration)
-                into(bd.destinationDir)
-                rename(stripVersionsAccordingToConfig(bd.configuration))
-                group = "build setup"
-            }
-        }
-
-        return bundledDependencies
-    }
 
     private fun configureTaskDefaults(
         tasks: TaskContainer,
