@@ -101,7 +101,7 @@ open class MpsPlugin @Inject constructor(
 
             val setupTask = tasks.register("setup", Sync::class) {
                 dependsOn(resolveMpsLibraries)
-                dependsOn(Callable { bundledDependencies.map(BundledDependency::syncTask) })
+                dependsOn(Callable { bundledDependencies.map(BundledDependency::resolveTask) })
 
                 group = "build setup"
                 description = "Sets up the project so that it can be opened in MPS."

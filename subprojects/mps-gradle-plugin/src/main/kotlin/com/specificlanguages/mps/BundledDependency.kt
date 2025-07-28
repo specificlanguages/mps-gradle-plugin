@@ -11,7 +11,7 @@ import javax.inject.Inject
 abstract class BundledDependency @Inject constructor(
     private val name: String,
     val configuration: NamedDomainObjectProvider<Configuration>,
-    val syncTask: NamedDomainObjectProvider<Sync>
+    val resolveTask: NamedDomainObjectProvider<Sync>
 ) : Named {
     override fun getName(): String = name
 

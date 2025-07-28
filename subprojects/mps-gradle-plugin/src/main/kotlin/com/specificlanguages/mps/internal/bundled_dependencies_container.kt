@@ -29,7 +29,7 @@ private class BundledDependencyFactory(
 
     override fun create(name: String): BundledDependency {
         val configuration = configurations.register(name)
-        val syncTask = tasks.register("sync" + capitalize(name), Sync::class)
+        val syncTask = tasks.register("resolve" + capitalize(name), Sync::class)
         val bd = objects.newInstance(BundledDependency::class.java, name, configuration, syncTask)
 
         configuration.configure {
@@ -38,7 +38,7 @@ private class BundledDependencyFactory(
         }
 
         syncTask.configure {
-            description = "Syncs destination directory of '${bd.name}' to contain only specified dependencies."
+            description = "Downloads the '${bd.name}' bundled dependencies into their destination directory."
             from(configuration)
             into(bd.destinationDir)
             rename(stripVersionsAccordingToConfig(bd.configuration))

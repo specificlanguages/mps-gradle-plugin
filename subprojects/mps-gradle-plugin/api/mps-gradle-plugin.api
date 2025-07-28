@@ -4,7 +4,7 @@ public abstract class com/specificlanguages/mps/BundledDependency : org/gradle/a
 	public abstract fun getDependency ()Lorg/gradle/api/artifacts/dsl/DependencyCollector;
 	public abstract fun getDestinationDir ()Lorg/gradle/api/file/DirectoryProperty;
 	public fun getName ()Ljava/lang/String;
-	public final fun getSyncTask ()Lorg/gradle/api/NamedDomainObjectProvider;
+	public final fun getResolveTask ()Lorg/gradle/api/NamedDomainObjectProvider;
 }
 
 public abstract class com/specificlanguages/mps/GenerateBuildScripts : org/gradle/api/DefaultTask {
