@@ -26,7 +26,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Task properties in MpsBuild classes replaced with task name getters:
+- Task properties in MpsBuild classes replaced with task name getters.
 - `MpsBuild.buildProjectName` removed, its value will be derived from `MpsBuild.buildArtifactsDirectory` which is now
   required.
 
