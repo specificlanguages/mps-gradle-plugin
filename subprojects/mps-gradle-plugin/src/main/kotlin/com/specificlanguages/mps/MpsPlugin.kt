@@ -129,7 +129,7 @@ open class MpsPlugin @Inject constructor(
                 })
             }
 
-            registerGroupingTasks(tasks, mpsBuilds)
+            configureLifecycleTasks(tasks, mpsBuilds)
 
             // Extend the clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
             // classes_gen, tests_gen, tests_gen.caches.
@@ -188,34 +188,19 @@ open class MpsPlugin @Inject constructor(
         return task
     }
 
-    private fun registerGroupingTasks(
+    private fun configureLifecycleTasks(
         tasks: TaskContainer,
         mpsBuilds: DomainObjectCollection<MpsBuild>
     ) {
-        tasks.register("generateMps") {
-            group = LifecycleBasePlugin.BUILD_GROUP
-            description = "Runs 'generate' tasks of all MPS builds."
-            dependsOn(Callable { mpsBuilds.map { it.generateTask } })
-        }
-
-        tasks.register("assembleMps") {
-            group = LifecycleBasePlugin.BUILD_GROUP
-            description = "Runs 'assemble' tasks of all MPS main builds."
-
+        tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
             dependsOn(Callable { mpsBuilds.withType(MainBuild::class.java).map { it.assembleTask } })
-        }
-
-        val testMps = tasks.register("testMps") {
-            group = LifecycleBasePlugin.VERIFICATION_GROUP
-            description = "Runs 'check' tasks of all MPS test builds."
-
-            dependsOn(Callable { mpsBuilds.withType(TestBuild::class.java).map { it.assembleAndCheckTask } })
         }
 
         val test = tasks.register("test") {
             group = LifecycleBasePlugin.VERIFICATION_GROUP
-            description = "Runs all tests in the project."
-            dependsOn(testMps)
+            description = "Runs 'check' tasks of all MPS test builds."
+
+            dependsOn(Callable { mpsBuilds.withType(TestBuild::class.java).map { it.assembleAndCheckTask } })
         }
 
         tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME) { dependsOn(test) }
