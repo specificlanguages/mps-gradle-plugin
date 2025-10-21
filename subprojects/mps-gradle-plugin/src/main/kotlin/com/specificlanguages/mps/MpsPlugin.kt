@@ -99,7 +99,7 @@ open class MpsPlugin @Inject constructor(
                 description = "Downloads and extracts all external MPS libraries."
             }
 
-            val setupTask = tasks.register("setup", Sync::class) {
+            val setupTask = tasks.register("setup") {
                 dependsOn(resolveMpsLibraries)
                 dependsOn(Callable { bundledDependencies.map(BundledDependency::resolveTask) })
 
