@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.0.0-pre5
+## 2.0.0
 
 ### Added
 
@@ -13,9 +13,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   versions (see
   [MPS-36481](https://youtrack.jetbrains.com/issue/MPS-36481/generate-Ant-task-should-not-write-logs-under-MPS-home-directory)).
 
+### Removed
+
+- MPS-specific lifecycle tasks: `generateMps`, `assembleMps`, etc.
+
 ### Fixed
 
-- `assemble` lifecycle task now depends on `assembleMps`.
+- `setup` task is no longer a `Sync` but a default (lifecycle) task.
+- `assemble` lifecycle task now assembles all main build scripts.
 
 ## 2.0.0-pre4
 
