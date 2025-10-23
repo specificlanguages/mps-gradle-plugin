@@ -64,7 +64,7 @@ abstract class MainBuild @Inject constructor(
 
     /**
      * Indicates whether the build is internal or published (packaged). Published builds have their artifacts included
-     * in the zip produced by `packageZip` and published by `components["mps"]`. By default, all main builds
+     * in the zip produced by the `zip` task and published by `components["mps"]`. By default, all main builds
      * are published.
      */
     abstract val published: Property<Boolean>

@@ -137,14 +137,14 @@ open class MpsPlugin @Inject constructor(
                 delete({ allGeneratedDirs(layout.projectDirectory).asIterable() })
             }
 
-            val packageZipTask = registerPackageZipTask(mpsBuilds, this.tasks)
+            val zipTask = registerZipTask(mpsBuilds, this.tasks)
 
             val apiElementsConfiguration =
-                registerApiElementsConfiguration(apiConfiguration, packageZipTask, configurations, objects)
+                registerApiElementsConfiguration(apiConfiguration, zipTask, configurations, objects)
 
             configurations[Dependency.DEFAULT_CONFIGURATION].apply {
                 extendsFrom(apiElementsConfiguration.get())
-                outgoing.artifact(packageZipTask)
+                outgoing.artifact(zipTask)
             }
 
             registerMpsComponent(components, apiElementsConfiguration)
@@ -153,23 +153,23 @@ open class MpsPlugin @Inject constructor(
 
     private fun registerApiElementsConfiguration(
         apiConfiguration: Provider<out Configuration>,
-        packageZipTask: TaskProvider<Zip>,
+        zipTask: TaskProvider<Zip>,
         configurations: ConfigurationContainer,
         objects: ObjectFactory
     ): NamedDomainObjectProvider<ConsumableConfiguration> = configurations.consumable(ConfigurationNames.API_ELEMENTS) {
         extendsFrom(apiConfiguration.get())
-        this.outgoing.artifact(packageZipTask)
+        this.outgoing.artifact(zipTask)
         this.attributes.attribute(
             Usage.USAGE_ATTRIBUTE,
             objects.named(Usage::class, Usage.JAVA_API)
         )
     }
 
-    private fun registerPackageZipTask(
+    private fun registerZipTask(
         mpsBuilds: DomainObjectCollection<MpsBuild>,
         tasks: TaskContainer
     ): TaskProvider<Zip> {
-        val task = tasks.register("packageZip", Zip::class.java) {
+        val task = tasks.register("zip", Zip::class.java) {
             group = LifecycleBasePlugin.BUILD_GROUP
             description = "Packages the artifacts of all main published MPS builds into a ZIP archive."
 
