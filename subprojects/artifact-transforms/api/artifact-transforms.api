@@ -8,11 +8,19 @@ public final class com/specificlanguages/mps/ArtifactTransforms : org/gradle/api
 public final class com/specificlanguages/mps/ArtifactTransforms$Companion {
 	public final fun getARTIFACT_TYPE_ATTRIBUTE ()Lorg/gradle/api/attributes/Attribute;
 	public final fun getMpsRoot (Lorg/gradle/api/artifacts/Configuration;)Lorg/gradle/api/provider/Provider;
+	public final fun getMpsRunnableRoot (Lorg/gradle/api/artifacts/Configuration;)Lorg/gradle/api/provider/Provider;
 	public final fun getUNZIP_MPS_FROM_ARTIFACT_TYPE ()Ljava/lang/String;
 	public final fun getUNZIP_MPS_TO_ARTIFACT_TYPE ()Ljava/lang/String;
+	public final fun getUNZIP_MPS_TO_RUNNABLE_ARTIFACT_TYPE ()Ljava/lang/String;
 }
 
 public abstract class com/specificlanguages/mps/UnzipMps : org/gradle/api/artifacts/transform/TransformAction {
+	public fun <init> ()V
+	public abstract fun getInputArtifact ()Lorg/gradle/api/provider/Provider;
+	public fun transform (Lorg/gradle/api/artifacts/transform/TransformOutputs;)V
+}
+
+public abstract class com/specificlanguages/mps/UnzipRunnableMps : org/gradle/api/artifacts/transform/TransformAction {
 	public fun <init> ()V
 	public abstract fun getInputArtifact ()Lorg/gradle/api/provider/Provider;
 	public fun transform (Lorg/gradle/api/artifacts/transform/TransformOutputs;)V
