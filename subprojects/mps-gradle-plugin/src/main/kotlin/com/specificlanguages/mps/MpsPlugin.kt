@@ -269,6 +269,7 @@ open class MpsPlugin @Inject constructor(
             )
             pathProperties.put("build.mps.config.path", temporaryDir.resolve("config"))
             pathProperties.put("build.mps.system.path", temporaryDir.resolve("system"))
+            pathProperties.put("mps.log.dir", temporaryDir.resolve("log"))
 
             pathProperties.putAll(mpsDefaults.pathVariables)
 

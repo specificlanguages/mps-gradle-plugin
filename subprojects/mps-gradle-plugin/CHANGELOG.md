@@ -7,6 +7,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 2.0.0-pre5
 
+### Added
+
+- `mps.log.dir` is passed to Ant scripts to move MPS logging directory to a different location on supported MPS
+  versions (see
+  [MPS-36481](https://youtrack.jetbrains.com/issue/MPS-36481/generate-Ant-task-should-not-write-logs-under-MPS-home-directory)).
+
 ### Fixed
 
 - `assemble` lifecycle task now depends on `assembleMps`.
