@@ -5,6 +5,8 @@ import com.specificlanguages.jbrtoolchain.JbrToolchainPlugin
 import com.specificlanguages.mps.internal.ConfigurationNames
 import com.specificlanguages.mps.internal.createBundledDependenciesContainer
 import com.specificlanguages.mps.internal.createMpsBuildsContainer
+import com.specificlanguages.mpsplatformcache.MpsPlatformCache
+import com.specificlanguages.mpsplatformcache.MpsPlatformCachePlugin
 import org.gradle.api.*
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
@@ -64,11 +66,14 @@ open class MpsPlugin @Inject constructor(
     override fun apply(project: Project) {
         project.run {
             pluginManager.apply(BasePlugin::class.java)
-            pluginManager.apply(ArtifactTransforms::class.java)
+            pluginManager.apply(MpsPlatformCachePlugin::class.java)
             pluginManager.apply(JbrToolchainPlugin::class.java)
 
             val mpsConfiguration = registerMpsConfiguration(configurations)
-            val mpsDefaults = registerMpsDefaultsExtension(extensions, layout, mpsConfiguration)
+
+            val mpsPlatformCache = MpsPlatformCachePlugin.getMpsPlatformCache(project)
+
+            val mpsDefaults = registerMpsDefaultsExtension(extensions, layout, mpsConfiguration, mpsPlatformCache)
 
             val bundledDependencies = createBundledDependenciesContainer(objects, tasks, configurations)
             extensions.add(
@@ -216,20 +221,16 @@ open class MpsPlugin @Inject constructor(
         configurations.register(ConfigurationNames.MPS) {
             isCanBeResolved = true
             isCanBeConsumed = false
-
-            attributes.attribute(
-                ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE,
-                ArtifactTransforms.UNZIP_MPS_FROM_ARTIFACT_TYPE
-            )
         }
 
     private fun registerMpsDefaultsExtension(
         extensions: ExtensionContainer,
         layout: ProjectLayout,
-        mpsConfiguration: Provider<out Configuration>
+        mpsConfiguration: Provider<out Configuration>,
+        mpsPlatformCache: MpsPlatformCache
     ): MpsDefaultsExtension =
         extensions.create<MpsDefaultsExtension>("mpsDefaults").apply {
-            mpsHome.convention(layout.dir(mpsConfiguration.flatMap(ArtifactTransforms::getMpsRoot)))
+            mpsHome.convention(layout.dir(mpsPlatformCache.getMpsRoot(mpsConfiguration)))
             mpsLibrariesDirectory.convention(layout.buildDirectory.dir("dependencies"))
             javaLauncher.convention(extensions.getByType<JbrToolchainExtension>().javaLauncher)
             antClasspath.convention(mpsHome.dir("lib/ant/lib").map {

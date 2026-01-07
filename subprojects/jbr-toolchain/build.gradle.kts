@@ -19,6 +19,8 @@ tasks.test {
 }
 
 dependencies {
+    implementation(project(":mps-platform-cache"))
+
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
     testImplementation("org.hamcrest:hamcrest:3.0")
 

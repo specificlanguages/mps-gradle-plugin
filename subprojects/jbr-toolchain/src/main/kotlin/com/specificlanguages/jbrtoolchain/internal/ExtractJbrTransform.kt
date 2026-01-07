@@ -40,7 +40,7 @@ abstract class ExtractJbrTransform : TransformAction<TransformParameters.None> {
             // On Windows we don't worry about symlinks
             // Using copy rather than sync because we assume we will get a fresh, empty directory from Gradle.
             fileSystemOperations.copy {
-                from({ archiveOperations.tarTree(inputFile) })
+                from(archiveOperations.tarTree(inputFile))
                 into(outputDir)
                 includeEmptyDirs = false
                 eachFile {

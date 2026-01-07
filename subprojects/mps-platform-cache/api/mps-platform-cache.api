@@ -1,0 +1,23 @@
+public abstract class com/specificlanguages/mpsplatformcache/MpsPlatformCache {
+	public static final field Companion Lcom/specificlanguages/mpsplatformcache/MpsPlatformCache$Companion;
+	public fun <init> (Lorg/gradle/api/invocation/Gradle;Lorg/gradle/process/ExecOperations;Lorg/gradle/api/file/FileSystemOperations;Lorg/gradle/api/file/ArchiveOperations;Lorg/gradle/api/file/ProjectLayout;Lorg/gradle/api/provider/ProviderFactory;Lorg/gradle/api/model/ObjectFactory;)V
+	public final fun getCacheRoot ()Lorg/gradle/api/file/DirectoryProperty;
+	public final fun getJbrRoot (Lorg/gradle/api/provider/Provider;)Lorg/gradle/api/provider/Provider;
+	public final fun getMpsRoot (Lorg/gradle/api/provider/Provider;)Lorg/gradle/api/provider/Provider;
+}
+
+public final class com/specificlanguages/mpsplatformcache/MpsPlatformCache$Companion {
+}
+
+public final class com/specificlanguages/mpsplatformcache/MpsPlatformCachePlugin : org/gradle/api/Plugin {
+	public static final field Companion Lcom/specificlanguages/mpsplatformcache/MpsPlatformCachePlugin$Companion;
+	public fun <init> ()V
+	public synthetic fun apply (Ljava/lang/Object;)V
+	public fun apply (Lorg/gradle/api/Project;)V
+	public static final fun getMpsPlatformCache (Lorg/gradle/api/Project;)Lcom/specificlanguages/mpsplatformcache/MpsPlatformCache;
+}
+
+public final class com/specificlanguages/mpsplatformcache/MpsPlatformCachePlugin$Companion {
+	public final fun getMpsPlatformCache (Lorg/gradle/api/Project;)Lcom/specificlanguages/mpsplatformcache/MpsPlatformCache;
+}
+

@@ -109,12 +109,11 @@ class JbrToolchainTest {
 
         assertThat(
             exception.message,
-            containsString("Make sure you add a dependency on the appropriate JetBrains Runtime to the 'jbr' configuration.")
+            containsString("Expected a single dependency for configuration 'jbr', found 0 dependencies")
         )
     }
 
     @Test
-    @Disabled("fails due to a Gradle 8.12 bug: https://github.com/gradle/gradle/issues/31862")
     fun errorMessageWhenSeveral() {
         val project = ProjectBuilder.builder().build()
         project.pluginManager.apply(JbrToolchainPlugin::class.java)
@@ -131,45 +130,8 @@ class JbrToolchainTest {
 
         assertThat(
             exception.message,
-            containsString("Make sure you only add a single dependency to the 'jbr' configuration.")
+            containsString("Expected a single dependency for configuration 'jbr', found 2 dependencies")
         )
     }
 
-    @Test
-    fun errorMessageWhenSeveralDependenciesIntegrationTest(@TempDir testProjectDir: File) {
-        // Replace with the test above once gradle/gradle#31862 is fixed.
-        testProjectDir.resolve("build.gradle.kts").writeText(
-            """
-            plugins {
-                id("com.specificlanguages.jbr-toolchain")
-            }
-
-            dependencies {
-                jbr("com.jetbrains.jdk:jbr_jcef:$JBR_VERSION")
-                jbr("com.jetbrains.jdk:jbr:$JBR_VERSION")
-            }
-
-            repositories.maven("https://artifacts.itemis.cloud/repository/maven-mps")
-
-            val javaVersion by tasks.registering(JavaExec::class) {
-                javaLauncher = jbrToolchain.javaLauncher
-                jvmArgs("-version")
-                mainClass = "dummy"
-            }
-            """.trimIndent()
-        )
-
-        val task = ":javaVersion"
-        val result = GradleRunner.create()
-            .withProjectDir(testProjectDir)
-            .withArguments(task)
-            .withPluginClasspath()
-            .buildAndFail()
-
-        assertEquals(TaskOutcome.FAILED, result.task(task)?.outcome)
-        assertThat(
-            result.output,
-            containsString("Make sure you only add a single dependency to the 'jbr' configuration.")
-        )
-    }
 }

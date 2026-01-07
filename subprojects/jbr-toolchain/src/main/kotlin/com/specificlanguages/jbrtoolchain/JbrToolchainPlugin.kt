@@ -1,6 +1,7 @@
 package com.specificlanguages.jbrtoolchain
 
 import com.specificlanguages.jbrtoolchain.internal.ExtractJbrTransform
+import com.specificlanguages.mpsplatformcache.MpsPlatformCachePlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -37,12 +38,6 @@ abstract class JbrToolchainPlugin : Plugin<Project> {
         return singleFile!!
     }
 
-    private fun getExtractedDirectory(config: Configuration): File = checkSingleFileInJbrConfiguration(
-        config.incoming.artifactView {
-            attributes.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, EXTRACT_JBR_TO_ARTIFACT_TYPE)
-        }.files
-    )
-
     private fun getJavaHomeFromExtractedDirectory(os: String, root: File) =
         when (os) {
             OSX -> root.resolve("Contents/Home")
@@ -51,6 +46,8 @@ abstract class JbrToolchainPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
         project.run {
+            pluginManager.apply(MpsPlatformCachePlugin::class.java)
+
             val os = currentOs()
             val arch = currentArch()
 
@@ -72,8 +69,8 @@ abstract class JbrToolchainPlugin : Plugin<Project> {
             }
 
             val toolchainSpecFactory = objects.newInstance(ToolchainSpecFactory::class.java)
-            val jbrSpec = jbrConfig.map {
-                val javaHome = getJavaHomeFromExtractedDirectory(os, getExtractedDirectory(it))
+            val jbrSpec = MpsPlatformCachePlugin.getMpsPlatformCache(project).getJbrRoot(jbrConfig).map {
+                val javaHome = getJavaHomeFromExtractedDirectory(os, it)
                 toolchainSpecFactory.fromJavaHome(javaHome)
             }
 

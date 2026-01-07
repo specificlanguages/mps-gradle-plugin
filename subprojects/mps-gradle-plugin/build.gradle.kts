@@ -8,7 +8,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation(project(":artifact-transforms"))
+    implementation(project(":mps-platform-cache"))
     implementation(project(":jbr-toolchain"))
     implementation("de.itemis.mps.build-backends:launcher:2.5.2.120.c791da5")
 
