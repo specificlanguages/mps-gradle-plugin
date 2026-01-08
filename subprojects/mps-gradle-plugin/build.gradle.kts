@@ -10,11 +10,11 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(project(":mps-platform-cache"))
     implementation(project(":jbr-toolchain"))
-    implementation("de.itemis.mps.build-backends:launcher:2.5.2.120.c791da5")
+    implementation(libs.mps.launcher)
 
-    testImplementation("org.hamcrest:hamcrest:3.0")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.12.0")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation(libs.hamcrest)
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 gradlePlugin {

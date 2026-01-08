@@ -7,11 +7,11 @@ description = "Cache of MPS and JBR, working around the deficiencies in Gradle a
 dependencies {
     gradleApi()
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
-    testImplementation("org.hamcrest:hamcrest:3.0")
+    testImplementation(libs.junit.jupiter.api)
+    testImplementation(libs.hamcrest)
 
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.4")
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testRuntimeOnly(libs.junit.jupiter.engine)
 }
 
 tasks.test {
