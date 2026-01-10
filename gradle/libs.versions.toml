@@ -1,7 +1,6 @@
 [versions]
 junit-jupiter = "5.12.0"
 junit-platform = "1.12.0"
-mps-launcher = "2.5.2.120.c791da5"
 
 [libraries]
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit-jupiter" }
@@ -9,4 +8,4 @@ junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", vers
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 hamcrest = { module = "org.hamcrest:hamcrest", version = "3.0" }
-mps-launcher = { module = "de.itemis.mps.build-backends:launcher", version.ref = "mps-launcher" }
+mps-launcher = { module = "de.itemis.mps.build-backends:launcher", version = "2.8.0.167.c51149b" }
