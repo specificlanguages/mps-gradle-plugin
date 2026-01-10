@@ -94,7 +94,7 @@ class JbrCachingTest {
     }
 
     @Test
-    fun `projects share same JBR cache`(@TempDir project1Dir: File, @TempDir project2Dir: File, @TempDir sharedCacheDir: File) {
+    fun projectsShareJbr(@TempDir project1Dir: File, @TempDir project2Dir: File, @TempDir sharedCacheDir: File) {
         val projectDirs = listOf(project1Dir, project2Dir)
 
         for (dir in projectDirs) {
@@ -103,18 +103,18 @@ class JbrCachingTest {
                 plugins {
                     id("com.specificlanguages.jbr-toolchain")
                 }
-
+                
                 dependencies {
                     jbr("com.jetbrains.jdk:jbr_jcef:$JBR_VERSION")
                 }
-
+                
                 repositories.maven("https://artifacts.itemis.cloud/repository/maven-mps")
-
-                val printJbrRoot by tasks.registering {
-                    val jbrRoot = mpsPlatformCache.getJbrRoot(configurations.jbr)
-
+    
+                val printJavaHome by tasks.registering {
                     doLast {
-                        println("JBR root: ${'$'}{jbrRoot.get()}")
+                        val javaHome = jbrToolchain.javaLauncher.get().metadata.installationPath
+                        println("Java home: ${'$'}javaHome")
+                
                     }
                 }
                 """.trimIndent()
@@ -126,21 +126,21 @@ class JbrCachingTest {
             )
         }
 
-        val jbrRoots = projectDirs.map { projectDir ->
+        val javaHomes = projectDirs.map { projectDir ->
             val result = GradleRunner.create()
                 .withProjectDir(projectDir)
-                .withArguments(":printJbrRoot")
+                .withArguments(":printJavaHome")
                 .withPluginClasspath()
                 .build()
 
-            assertEquals(TaskOutcome.SUCCESS, result.task(":printJbrRoot")?.outcome, "$projectDir outcome of :printJbrRoot")
+            assertEquals(TaskOutcome.SUCCESS, result.task(":printJavaHome")?.outcome, "$projectDir outcome of :printJavaHome")
 
-            val jbrRootMatch = Regex("^JBR root:(.*)$", RegexOption.MULTILINE).find(result.output)
-            assertTrue(jbrRootMatch != null, "$projectDir output should contain 'JBR root:' but was: ${result.output}")
+            val javaHomeMatch = Regex("^Java home:(.*)$", RegexOption.MULTILINE).find(result.output)
+            assertTrue(javaHomeMatch != null, "$projectDir output should contain 'Java home:' but was: ${result.output}")
 
-            jbrRootMatch!!.groupValues[1].trim()
+            javaHomeMatch!!.groupValues[1]
         }
 
-        assertEquals(jbrRoots[0], jbrRoots[1], "JBR root should be the same in both projects")
+        assertEquals(javaHomes[0], javaHomes[1], "Java home should be the same in both projects")
     }
 }

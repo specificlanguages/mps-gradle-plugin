@@ -51,53 +51,6 @@ class JbrToolchainTest {
             "output should contain JBR version $JBR_BUILD but was: ${result.output}"
         }
     }
-
-    @Test
-    fun projectsShareJbr(@TempDir project1Dir: File, @TempDir project2Dir: File) {
-        val projectDirs = listOf(project1Dir, project2Dir)
-
-        for (dir in projectDirs) {
-            dir.resolve("build.gradle.kts").writeText(
-                """
-                plugins {
-                    id("com.specificlanguages.jbr-toolchain")
-                }
-                
-                dependencies {
-                    jbr("com.jetbrains.jdk:jbr_jcef:$JBR_VERSION")
-                }
-                
-                repositories.maven("https://artifacts.itemis.cloud/repository/maven-mps")
-    
-                val printJavaHome by tasks.registering {
-                    doLast {
-                        val javaHome = jbrToolchain.javaLauncher.get().metadata.installationPath
-                        println("Java home: ${'$'}javaHome")
-                
-                    }
-                }
-                """.trimIndent()
-            )
-        }
-
-        val javaHomes = projectDirs.map { projectDir ->
-            val result = GradleRunner.create()
-                .withProjectDir(projectDir)
-                .withArguments(":printJavaHome")
-                .withPluginClasspath()
-                .build()
-
-            assertEquals(TaskOutcome.SUCCESS, result.task(":printJavaHome")?.outcome, "$projectDir outcome of :printJavaHome")
-
-            val javaHomeMatch = Regex("^Java home:(.*)$", RegexOption.MULTILINE).find(result.output)
-            assertTrue(javaHomeMatch != null, "$projectDir output should contain 'Java home:' but was: ${result.output}")
-
-            javaHomeMatch!!.groupValues[1]
-        }
-
-        assertEquals(javaHomes[0], javaHomes[1], "Java home should be the same in both projects")
-    }
-
     @Test
     fun errorMessageWhenEmpty() {
         val project = ProjectBuilder.builder().build()

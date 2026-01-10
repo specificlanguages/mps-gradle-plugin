@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.0
+
+### Changed
+
+- The plugin now extracts the JBR using [mps-platform-cache](../mps-platform-cache/README.md) instead of an artifact
+  transform.
+
 ## 1.0.2
 
 ### Added
