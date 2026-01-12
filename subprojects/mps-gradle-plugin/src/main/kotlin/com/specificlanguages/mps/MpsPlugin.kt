@@ -2,16 +2,14 @@ package com.specificlanguages.mps
 
 import com.specificlanguages.jbrtoolchain.JbrToolchainExtension
 import com.specificlanguages.jbrtoolchain.JbrToolchainPlugin
-import com.specificlanguages.mps.internal.createBundledDependenciesContainer
 import com.specificlanguages.mps.internal.ConfigurationNames
+import com.specificlanguages.mps.internal.createBundledDependenciesContainer
 import com.specificlanguages.mps.internal.createMpsBuildsContainer
 import org.gradle.api.*
-import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.ConsumableConfiguration
 import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentContainer
 import org.gradle.api.component.SoftwareComponentFactory
@@ -29,7 +27,6 @@ import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.jvm.toolchain.JavaToolchainService
 import org.gradle.kotlin.dsl.*
-import org.gradle.kotlin.dsl.typeOf
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import java.io.File
 import java.util.concurrent.Callable
