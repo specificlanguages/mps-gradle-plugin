@@ -7,98 +7,34 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 2.0.0
 
-### Added
+This new major version changes the approach to MPS builds. Build scripts are no longer detected automatically but have
+to be explicitly added to the `mpsBuilds` container. In return, one Gradle project can now contain multiple build
+scripts and even MPS projects.
 
-- `mps.log.dir` is passed to Ant scripts to move MPS logging directory to a different location on supported MPS
-  versions (see
-  [MPS-36481](https://youtrack.jetbrains.com/issue/MPS-36481/generate-Ant-task-should-not-write-logs-under-MPS-home-directory)).
+In the area of dependency management, 2.0.0 adds support for test-only dependencies. The `generation` configuration has
+been replaced with `api` for production-scope dependencies and `testImplementation` for test-scope dependencies.
 
-### Removed
+Some tasks and properties have been renamed to better match their purpose.
 
-- MPS-specific lifecycle tasks: `generateMps`, `assembleMps`, etc.
-
-### Fixed
-
-- `setup` task is no longer a `Sync` but a default (lifecycle) task.
-- `assemble` lifecycle task now assembles all main build scripts.
-
-## 2.0.0-pre4
-
-### Changed
-
-- Domain objects now contain references to tasks and configurations as read-only named providers rather than properties
-  or names. For example, `MpsBuild.generateTaskName: String` becomes `MpsBuild.generateTask: TaskProvider<out RunAnt>`.
-- `package` task renamed to `packageZip` to avoid conflict with the `package` reserved word.
-- `BundledDependency.syncTask` renamed to `resolveTask` as it is a more familiar name.
-
-## 2.0.0-pre3
-
-### Added
-
-- `MpsBuild.mpsProjectDirectory` property to support multiple MPS projects in a single Gradle project.
-- `MainBuild.published` property to control whether a build's artifacts are included in the published package.
-- `RunAnt`: pass additional path properties to Ant by default: `mps.home`, `build.jna.library.path`,
-  `build.mps.config.path`, and `build.mps.system.path`. The latter two properties are overridden to improve task
-  isolation.
-
-### Changed
-
-- Task properties in MpsBuild classes replaced with task name getters.
-- `MpsBuild.buildProjectName` removed, its value will be derived from `MpsBuild.buildArtifactsDirectory` which is now
-  required.
-
-  The rationale for this change is that the artifacts directory is more important for the functionality of the plugin.
-  Also, users did not quite understand what to provide for 'build project name,' probably because it was unexpected.
-
-## 2.0.0-pre2
-
-This version fixes a few bugs in 2.0.0-pre1 and introduces fine-grained configurations named consistently with Gradle
-Java plugins. The existing `generation` configuration is renamed to `api` and a new configuration, `testImplementation`,
-is introduced for test-only dependencies.
-
-Even though MPS does not distinguish between 'runtime' and 'compile' dependencies like the Java ecosystem does,
-I believe it will be beneficial to make this distinction in this plugin at least, in the hope that it may be used by
-third-party tools in the future to guard against implementation dependencies leaking into the library interface.
-
-### Added
-
-- Fine-grained dependencies (`api`, `testImplementation`, etc.).
-- `GenerateBuildScripts.environment` for specifying the environment. Defaults to the environment of the current process.
-- `RunAnt` will delete its working directory unless told not to.
-
-### Fixed
-
-- `RunAnt` environment now defaults to the environment of the current process.
-- The plugin no longer causes all `RunAnt` and `GenerateBuildScript` tasks to be eagerly realized (created).
-
-## Changed
-
-- `generation` configuration renamed to `api`.
-- `mpsDefaults.dependenciesDirectory` renamed to `mpsLibrariesDirectory` to be more specific.
-- `resolveGenerationDependencies` task renamed to `resolveMpsLibraries` as it resolves all dependencies, not just
-  generation-time.
-
-## 2.0.0-pre1
-
-Breaking changes are to be expected until the final 2.0.0 release.
+Further changes are listed below.
 
 ### Added
 
 - Path variables can be specified in `mpsDefaults` and will be passed to both MPS and Ant tasks.
-- Support for multiple build scripts, including test build scripts.
+- Improved isolation of MPS instances to help with parallel runs. Each task that launches MPS is configured to put the
+  MPS cache and logs into a separate directory from other tasks.
 
-### 🚨 Changed
+### 🚨Breaking changes
 
-- Automatic build script detection was removed, build scripts now have to be explicitly added to the `mpsBuilds`
-  container.
+- Some classes, extensions and tasks were moved around and renamed.
+- The plugin no longer applies the `java-base` plugin.
 - The plugin now applies the `jbr-toolchain` plugin and uses the runtime specified by the `jbr` configuration to run
   Ant and MPS.
-- `stubs` renamed to `bundledDependencies`
-- 🚨 `com.specificlanguages.RunAntScript` replaced with `com.specificlanguages.mps.RunAnt` which uses modern Gradle
+- `setup` task is no longer a `Sync` but a default (lifecycle) task.
+- `com.specificlanguages.RunAntScript` task replaced with `com.specificlanguages.mps.RunAnt` which uses modern Gradle
   features: lazy properties and `JavaLauncher` for specifying the JVM to use.
-- 🚨 The `com.specificlanguages.mps` plugin no longer applies the `java-base` plugin.
 
-### 🚨 Removed
+### 🚨Removed
 
 - `mpsDefaults.javaExecutable` (previously deprecated in favor of `mpsDefaults.javaLauncher`).
 
