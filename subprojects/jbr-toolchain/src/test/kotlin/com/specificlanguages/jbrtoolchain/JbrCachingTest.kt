@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.util.Properties
 
 class JbrCachingTest {
     companion object {
@@ -119,11 +120,12 @@ class JbrCachingTest {
                 }
                 """.trimIndent()
             )
-            dir.resolve("gradle.properties").writeText(
-                """
-                com.specificlanguages.mps-platform-cache.cacheRoot=${sharedCacheDir.absolutePath}
-                """.trimIndent()
-            )
+
+            dir.resolve("gradle.properties").outputStream().use {
+                val gradleProperties = Properties()
+                gradleProperties["com.specificlanguages.mps-platform-cache.cacheRoot"] = sharedCacheDir.absolutePath
+                gradleProperties.store(it, null)
+            }
         }
 
         val javaHomes = projectDirs.map { projectDir ->
