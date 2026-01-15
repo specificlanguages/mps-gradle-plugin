@@ -92,7 +92,7 @@ abstract class GenerateBuildScripts : DefaultTask() {
 
                 mainClass.set("de.itemis.mps.gradle.generate.MainKt")
 
-                MpsBackendLauncher(project.objects).builder()
+                MpsBackendLauncher(objects).builder()
                     .withJavaLauncher(javaLauncher)
                     .withMpsHome(mpsHome.asFile)
                     .withTemporaryDirectory(temporaryDir)

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.1
+
+### Changed
+
+- `assemble` task now depends on `zip`: according to the documentation of Gradle
+  [Base Plugin](https://docs.gradle.org/9.2.1/userguide/base_plugin.html) plugins should attach tasks that produce
+  distributions and other consumable artifacts to `assemble`.
+
+### Fixed
+
+- A few cases of incompatibility with the Gradle configuration cache.
+- `assemble` no longer depends on assembling non-published build scripts (such as sandboxes).
+
 ## 2.0.0
 
 This new major version changes the approach to MPS builds. Build scripts are no longer detected automatically but have

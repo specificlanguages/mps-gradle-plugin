@@ -4,13 +4,17 @@ import com.specificlanguages.mps.BundledDependency
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.NamedDomainObjectFactory
 import org.gradle.api.Transformer
-import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.ArtifactCollection
 import org.gradle.api.artifacts.ConfigurationContainer
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.result.ResolvedArtifactResult
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskContainer
+import org.gradle.internal.component.external.model.DefaultModuleComponentArtifactIdentifier
 import org.gradle.kotlin.dsl.register
+import kotlin.collections.find
 
 internal fun createBundledDependenciesContainer(
     objects: ObjectFactory,
@@ -41,7 +45,7 @@ private class BundledDependencyFactory(
             description = "Downloads the '${bd.name}' bundled dependencies into their destination directory."
             from(configuration)
             into(bd.destinationDir)
-            rename(stripVersionsAccordingToConfig(bd.configuration))
+            rename(VersionStrippingTransformer(bd.configuration.map { it.incoming.artifacts }))
             group = "build setup"
         }
 
@@ -49,12 +53,20 @@ private class BundledDependencyFactory(
     }
 }
 
-private fun stripVersionsAccordingToConfig(config: Provider<Configuration>): Transformer<String?, String> =
-    Transformer { filename ->
-        val ra = config.get().resolvedConfiguration.resolvedArtifacts.find { ra -> ra.file.name == filename }!!
-        if (ra.classifier != null) {
-            "${ra.name}-${ra.classifier}.${ra.extension}"
-        } else {
-            "${ra.name}.${ra.extension}"
+private class VersionStrippingTransformer(val artifacts: Provider<ArtifactCollection>) : Transformer<String?, String> {
+    override fun transform(filename: String): String? {
+        val ra = artifacts.get().artifacts.find { ra -> ra.file.name == filename }!!
+        val id = ra.id
+        if (id is DefaultModuleComponentArtifactIdentifier && id.name.classifier != null) {
+            // Artifact has a classifier, need to include it in the name
+            return "${id.name.name}-${id.name.classifier}.${id.name.extension}"
         }
+
+        val componentIdentifier = id.componentIdentifier
+        if (componentIdentifier is ModuleComponentIdentifier) {
+            return "${componentIdentifier.module}.${ra.file.extension}"
+        }
+
+        return filename
     }
+}

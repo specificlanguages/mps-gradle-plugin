@@ -33,6 +33,7 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin
 import java.io.File
 import java.util.concurrent.Callable
 import javax.inject.Inject
+import kotlin.collections.emptyList
 
 private fun allGeneratedDirs(root: Directory): Sequence<File> {
     val dirsToFind = arrayOf("source_gen", "source_gen.caches", "classes_gen", "tests_gen", "tests_gen.caches")
@@ -131,8 +132,6 @@ open class MpsPlugin @Inject constructor(
                 })
             }
 
-            configureLifecycleTasks(tasks, mpsBuilds)
-
             // Extend the clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
             // classes_gen, tests_gen, tests_gen.caches.
             tasks.named(BasePlugin.CLEAN_TASK_NAME, Delete::class) {
@@ -140,6 +139,8 @@ open class MpsPlugin @Inject constructor(
             }
 
             val zipTask = registerZipTask(mpsBuilds, this.tasks)
+
+            configureLifecycleTasks(tasks, mpsBuilds, zipTask)
 
             val apiElementsConfiguration =
                 registerApiElementsConfiguration(apiConfiguration, zipTask, configurations, objects)
@@ -170,32 +171,35 @@ open class MpsPlugin @Inject constructor(
     private fun registerZipTask(
         mpsBuilds: DomainObjectCollection<MpsBuild>,
         tasks: TaskContainer
-    ): TaskProvider<Zip> {
-        val task = tasks.register("zip", Zip::class.java) {
-            group = LifecycleBasePlugin.BUILD_GROUP
-            description = "Packages the artifacts of all main published MPS builds into a ZIP archive."
+    ): TaskProvider<Zip> = tasks.register("zip", Zip::class.java) {
+        this.group = LifecycleBasePlugin.BUILD_GROUP
+        this.description = "Packages the artifacts of all main published MPS builds into a ZIP archive."
 
-            fun addToZipIfPublished(build: MainBuild) {
-                val task = this@register
-                task.dependsOn(build.assembleTask)
+        fun addToZipIfPublished(build: MainBuild) {
+            val task = this
+            val published = build.published
 
-                task.into(build.buildArtifactsDirectory.asFile.map(File::getName)) {
-                    from(build.buildArtifactsDirectory)
-                    exclude { !build.published.get() }
-                }
+            task.dependsOn(build.published.map { if (it) build.assembleTask else emptyList<Task>() })
+
+            task.into(build.published.map { if (it) build.buildArtifactsDirectory.asFile.map(File::getName) else "" }) {
+                from(build.published.map {
+                    if (it) build.buildArtifactsDirectory
+                    else project.layout.buildDirectory.dir("nonexistent")
+                })
+                exclude { !published.getOrElse(false) }
             }
-
-            mpsBuilds.withType(MainBuild::class.java).all { addToZipIfPublished(this) }
         }
-        return task
+
+        mpsBuilds.withType(MainBuild::class.java).all { addToZipIfPublished(this) }
     }
 
     private fun configureLifecycleTasks(
         tasks: TaskContainer,
-        mpsBuilds: DomainObjectCollection<MpsBuild>
+        mpsBuilds: DomainObjectCollection<MpsBuild>,
+        zipTask: TaskProvider<out Task>
     ) {
         tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
-            dependsOn(Callable { mpsBuilds.withType(MainBuild::class.java).map { it.assembleTask } })
+            dependsOn(zipTask)
         }
 
         val test = tasks.register("test") {
