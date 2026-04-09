@@ -5,6 +5,7 @@ import org.gradle.testkit.runner.TaskOutcome
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.*
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
@@ -18,9 +19,12 @@ class FullBuildTest {
         /**
          * The cache root shared with the outer Gradle build. The mps-platform-cache plugin in the test project
          * will use this directory to avoid re-downloading MPS for every test run.
+         *
+         * Must be set via the `test.mps-platform-cache.cacheRoot` system property in the build file.
          */
-        private val CACHE_ROOT = File(System.getProperty("test.mps-platform-cache.cacheRoot",
-            File("../../build/mps-platform-cache").absolutePath))
+        private val CACHE_ROOT = File(System.getProperty("test.mps-platform-cache.cacheRoot")
+            ?: error("System property 'test.mps-platform-cache.cacheRoot' is not set. " +
+                "Configure it in the build file via tasks.test { systemProperty(...) }."))
     }
 
     @Test
@@ -44,7 +48,7 @@ class FullBuildTest {
             "zip task should succeed")
 
         val zipFile = workDir.resolve("build/distributions/mps-json-1.0.0-test.zip")
-        assertThat("ZIP file should be produced", zipFile.exists(), `is`(true))
+        assertTrue(zipFile.exists(), "ZIP file should be produced at ${zipFile.path}")
 
         val jarNames = ZipFile(zipFile).use { zip ->
             zip.entries().asSequence()
