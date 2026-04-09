@@ -31,4 +31,8 @@ gradlePlugin {
 
 tasks.test {
     useJUnitPlatform()
+    systemProperty(
+        "test.mps-platform-cache.cacheRoot",
+        rootProject.layout.buildDirectory.dir("mps-platform-cache").get().asFile.absolutePath
+    )
 }
