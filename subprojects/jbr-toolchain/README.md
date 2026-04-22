@@ -81,10 +81,7 @@ The plugin creates a configuration called `jbr` and sets
 up [dependency substitution](https://docs.gradle.org/current/userguide/resolution_rules.html#sec:dependency-substitution-rules)
 to add a classifier corresponding to the current operating system and architecture (e.g. `osx-aarch64`).
 
-In addition, an [artifact transform](https://docs.gradle.org/current/userguide/artifact_transforms.html) is used to
-extract the JBR. Gradle shares the result of the transform among all projects
-(keyed by the artifact coordinates and the hash of the transform implementation class and its classpath), just like it
-shares other downloaded Java dependencies.
-
-The use of the artifact transform is hidden behind the `jbrToolchain` extension facade. This extension provides a
-`JavaLauncher` for direct use in `JavaExec` and similar tasks, and a `ToolchainSpec` object to access any other tools.
+The extracted JBR is cached using [mps-platform-cache](../mps-platform-cache). The cache is by default placed under the
+root project's build directory, but the location can be changed to e.g., a directory in the user's home folder. The use
+of the cache is hidden behind the `jbrToolchain` extension facade. This extension provides a `JavaLauncher` for direct
+use in `JavaExec` and similar tasks, and a `ToolchainSpec` object to access any other tools.
