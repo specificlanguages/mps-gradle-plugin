@@ -6,11 +6,17 @@ repositories {
     maven { url = uri("https://artifacts.itemis.cloud/repository/maven-mps/") }
 }
 
+// Optional dependencies are compileOnly but the tests exercise the integrations they enable.
+configurations.testImplementation.configure { extendsFrom(configurations.compileOnly.get()) }
+
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(project(":mps-platform-cache"))
     implementation(project(":jbr-toolchain"))
     implementation(libs.mps.launcher)
+
+    // mbeddr plugin is an optional dependency, used only when the user opts in by applying it.
+    compileOnly(libs.mbeddr.plugin)
 
     testImplementation(libs.hamcrest)
     testImplementation(libs.junit.jupiter)
