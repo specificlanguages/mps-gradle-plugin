@@ -3,6 +3,7 @@ package com.specificlanguages.mps
 import com.specificlanguages.jbrtoolchain.JbrToolchainExtension
 import com.specificlanguages.jbrtoolchain.JbrToolchainPlugin
 import com.specificlanguages.mps.internal.ConfigurationNames
+import com.specificlanguages.mps.internal.configureMbeddrIntegration
 import com.specificlanguages.mps.internal.createBundledDependenciesContainer
 import com.specificlanguages.mps.internal.createMpsBuildsContainer
 import com.specificlanguages.mpsplatformcache.MpsPlatformCache
@@ -124,6 +125,8 @@ open class MpsPlugin @Inject constructor(
 
             val mpsBuilds = createMpsBuildsContainer(objects, tasks, generateBuildScriptsTask)
             extensions.add(typeOf<PolymorphicDomainObjectContainer<MpsBuild>>(), "mpsBuilds", mpsBuilds)
+
+            configureMbeddrIntegration(project, mpsDefaults)
 
             generateBuildScriptsTask.configure {
                 dependsOn(setupTask)

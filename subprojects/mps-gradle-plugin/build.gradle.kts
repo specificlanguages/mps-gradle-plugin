@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.utils.extendsFrom
+
 plugins {
     `plugin-conventions`
 }
@@ -6,14 +8,20 @@ repositories {
     maven { url = uri("https://artifacts.itemis.cloud/repository/maven-mps/") }
 }
 
+configurations.testImplementation.extendsFrom(configurations.compileOnly)
+
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(project(":mps-platform-cache"))
     implementation(project(":jbr-toolchain"))
     implementation(libs.mps.launcher)
 
+    // mbeddr plugin is an optional dependency, used only when the user opts in by applying it.
+    compileOnly(libs.mbeddr.plugin)
+
     testImplementation(libs.hamcrest)
     testImplementation(libs.junit.jupiter)
+
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
