@@ -340,6 +340,28 @@ The following properties can be customized:
 - `pathVariables` – can be used to specify custom path variables. These are added to the MPS environment for the
   `generateBuildScripts` task and passed as Ant properties to all `RunAnt` tasks.
 
+## Using the mbeddr Gradle plugin
+
+If the [mbeddr Gradle plugin](https://github.com/mbeddr/mps-gradle-plugin) (`de.itemis.mps.gradle.common`) is applied
+to the same project, its tasks are configured to use the same defaults as the tasks of this plugin:
+
+```kotlin
+plugins {
+    id("com.specificlanguages.mps")
+    id("de.itemis.mps.gradle.common")
+}
+
+tasks.register<MpsCheck>("checkModels") {
+    // mpsHome, javaLauncher, plugin roots and macros are already configured.
+}
+```
+
+`MpsCheck`, `MpsExecute`, `MpsGenerate`, `MpsMigrate` and `Remigrate` tasks get:
+
+- `mpsHome` and `javaLauncher` conventions from `mpsDefaults`, so they can be overridden per task if necessary,
+- the MPS plugins directory (`$mpsHome/plugins`) as a plugin root,
+- `mpsDefaults.pathVariables` as macros.
+
 ## MPS and JBR caching
 
 This plugin uses the [mps-platform-cache](../mps-platform-cache/README.md) plugin to cache MPS and JBR distributions.

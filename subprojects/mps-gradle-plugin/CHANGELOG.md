@@ -7,6 +7,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Added
+
+- Integration with the [mbeddr Gradle plugin](https://github.com/mbeddr/mps-gradle-plugin): when
+  `de.itemis.mps.gradle.common` is applied to the same project, its tasks (`MpsCheck`, `MpsExecute`, `MpsGenerate`,
+  `MpsMigrate`, `Remigrate`) use `mpsDefaults` for `mpsHome` and `javaLauncher`, and are configured with the MPS
+  plugins directory as a plugin root and with `mpsDefaults.pathVariables` as macros.
+
 ### Changed
 
 - Gradle version updated to 9.6.1.
