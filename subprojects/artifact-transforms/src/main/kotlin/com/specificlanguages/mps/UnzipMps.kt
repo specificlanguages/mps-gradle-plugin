@@ -22,13 +22,18 @@ import org.gradle.api.artifacts.transform.TransformOutputs
 import org.gradle.api.artifacts.transform.TransformParameters
 import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.kotlin.dsl.support.unzipTo
+import org.gradle.work.DisableCachingByDefault
 
 /**
  * Unzips input artifact into 'mps' directory of the transformation outputs
  */
+@DisableCachingByDefault(because = "not worth caching")
 abstract class UnzipMps : TransformAction<TransformParameters.None> {
     @get:InputArtifact
+    @get:PathSensitive(PathSensitivity.NONE)
     abstract val inputArtifact: Provider<FileSystemLocation>
 
     override fun transform(outputs: TransformOutputs) {
