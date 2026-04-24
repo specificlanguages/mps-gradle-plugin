@@ -20,6 +20,17 @@ public abstract class com/specificlanguages/mps/GenerateBuildScripts : org/gradl
 	public final fun make ()V
 }
 
+public abstract class com/specificlanguages/mps/InstallMops : org/gradle/api/DefaultTask {
+	public static final field Companion Lcom/specificlanguages/mps/InstallMops$Companion;
+	public fun <init> ()V
+	public abstract fun getTargetDir ()Lorg/gradle/api/file/DirectoryProperty;
+	public abstract fun getVersion ()Lorg/gradle/api/provider/Property;
+	public final fun install ()V
+}
+
+public final class com/specificlanguages/mps/InstallMops$Companion {
+}
+
 public abstract class com/specificlanguages/mps/MainBuild : com/specificlanguages/mps/MpsBuild {
 	public fun <init> (Lorg/gradle/api/tasks/TaskProvider;Lorg/gradle/api/tasks/TaskProvider;)V
 	public final fun getAssembleTask ()Lorg/gradle/api/tasks/TaskProvider;

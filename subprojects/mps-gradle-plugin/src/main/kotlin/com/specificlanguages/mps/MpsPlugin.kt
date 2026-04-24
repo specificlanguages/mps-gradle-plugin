@@ -4,6 +4,7 @@ import com.specificlanguages.jbrtoolchain.JbrToolchainExtension
 import com.specificlanguages.jbrtoolchain.JbrToolchainPlugin
 import com.specificlanguages.mps.internal.ConfigurationNames
 import com.specificlanguages.mps.internal.configureMbeddrIntegration
+import com.specificlanguages.mps.internal.configureMopsCliIntegration
 import com.specificlanguages.mps.internal.createBundledDependenciesContainer
 import com.specificlanguages.mps.internal.createMpsBuildsContainer
 import com.specificlanguages.mpsplatformcache.MpsPlatformCache
@@ -128,6 +129,10 @@ open class MpsPlugin @Inject constructor(
 
             configureMbeddrIntegration(project, mpsDefaults)
 
+            configureMopsCliIntegration(project, mpsBuilds)
+
+            registerInstallMops(project)
+
             generateBuildScriptsTask.configure {
                 dependsOn(setupTask)
                 buildSolutionDescriptorsByProject.putAll(provider {
@@ -154,6 +159,17 @@ open class MpsPlugin @Inject constructor(
             }
 
             registerMpsComponent(components, apiElementsConfiguration)
+        }
+    }
+
+    private fun registerInstallMops(project: Project) {
+        project.tasks.register("installMops", InstallMops::class.java) {
+            version.convention(project.provider { project.version.toString() })
+            targetDir.convention(
+                project.layout.dir(
+                    project.providers.systemProperty("user.home").map { java.io.File(it).resolve(".local/bin") }
+                )
+            )
         }
     }
 

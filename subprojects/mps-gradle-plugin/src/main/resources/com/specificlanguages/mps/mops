@@ -1,0 +1,177 @@
+#!/bin/sh
+# mops - unified CLI for MPS, backed by Gradle.
+# mops-version: @VERSION@
+#
+# Translates a few CLI flags to -Pmops.* properties and invokes the `mopsCheck` task of the
+# nearest ./gradlew. The task is registered by the `com.specificlanguages.mps` plugin when the
+# user's build also applies the mbeddr plugin (`de.itemis.mps.gradle.common`).
+set -eu
+
+prog=$(basename "$0")
+
+die() {
+    printf '%s: %s\n' "$prog" "$1" >&2
+    exit 1
+}
+
+print_help() {
+    cat <<'EOF'
+mops - unified CLI for MPS (via Gradle)
+
+Usage:
+  mops [options] <subcommand> [subcommand-args...]
+
+Options:
+  -h, --help       Show this help
+  --verbose        Show full Gradle output (default is --quiet)
+
+Subcommands:
+  check            Run MPS model checks in the current Gradle project
+                   Options:
+                     --model <regex>    Restrict to models matching regex. Repeatable.
+                     --module <regex>   Restrict to modules matching regex. Repeatable.
+                     --project <path>   MPS project directory, relative to the Gradle
+                                        project or absolute. Defaults to the Gradle
+                                        project root.
+
+mops must be run inside a Gradle project that applies both `com.specificlanguages.mps`
+and `de.itemis.mps.gradle.common`. It discovers ./gradlew by walking upward from the
+current directory and scopes Gradle to the project containing that directory.
+EOF
+}
+
+# Walk up from CWD to find a gradlew.
+find_gradlew() {
+    dir=$PWD
+    while [ "$dir" != "/" ]; do
+        if [ -x "$dir/gradlew" ]; then
+            printf '%s\n' "$dir/gradlew"
+            return 0
+        fi
+        dir=$(dirname -- "$dir")
+    done
+    return 1
+}
+
+# Parse mops-level options (stopping at the first non-option / subcommand).
+verbose=0
+subcommand=""
+while [ $# -gt 0 ]; do
+    case $1 in
+        -h|--help)
+            print_help
+            exit 0
+            ;;
+        --verbose)
+            verbose=1
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            die "unknown option: $1"
+            ;;
+        *)
+            subcommand=$1
+            shift
+            break
+            ;;
+    esac
+done
+
+[ -n "$subcommand" ] || { print_help; exit 2; }
+
+case $subcommand in
+    check) gradle_task=mopsCheck ;;
+    *) die "unknown subcommand: $subcommand" ;;
+esac
+
+# Parse subcommand args: collect --model/--module into comma-joined -P properties.
+# Any other flags are passed through to Gradle verbatim as task options.
+models=""
+modules=""
+project_location=""
+append_csv() {
+    # $1 = current value, $2 = value to add (containing no commas)
+    case $2 in
+        *,*) die "commas are not allowed inside --model/--module values" ;;
+    esac
+    if [ -z "$1" ]; then printf '%s' "$2"; else printf '%s,%s' "$1" "$2"; fi
+}
+
+# Build pass-through args array via `set` (we don't have arrays in POSIX sh).
+passthrough_count=0
+save_arg() {
+    eval "passthrough_$passthrough_count=\$1"
+    passthrough_count=$((passthrough_count + 1))
+}
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --model)
+            shift
+            [ $# -gt 0 ] || die "--model requires a value"
+            models=$(append_csv "$models" "$1")
+            shift
+            ;;
+        --model=*)
+            models=$(append_csv "$models" "${1#--model=}")
+            shift
+            ;;
+        --module)
+            shift
+            [ $# -gt 0 ] || die "--module requires a value"
+            modules=$(append_csv "$modules" "$1")
+            shift
+            ;;
+        --module=*)
+            modules=$(append_csv "$modules" "${1#--module=}")
+            shift
+            ;;
+        --project)
+            shift
+            [ $# -gt 0 ] || die "--project requires a value"
+            project_location=$1
+            shift
+            ;;
+        --project=*)
+            project_location=${1#--project=}
+            shift
+            ;;
+        *)
+            save_arg "$1"
+            shift
+            ;;
+    esac
+done
+
+# Restore pass-through args to positional params.
+set --
+i=0
+while [ $i -lt $passthrough_count ]; do
+    eval "set -- \"\$@\" \"\$passthrough_$i\""
+    i=$((i + 1))
+done
+
+gradlew=$(find_gradlew) || die "no ./gradlew found walking up from $PWD"
+
+if [ $verbose -eq 1 ]; then
+    log_flag=--info
+else
+    log_flag=--quiet
+fi
+
+# -P props must appear before the task so they are available at configuration time.
+set -- \
+    --console=plain \
+    "$log_flag" \
+    --project-dir "$PWD" \
+    ${models:+"-Pmops.models=$models"} \
+    ${modules:+"-Pmops.modules=$modules"} \
+    ${project_location:+"-Pmops.projectLocation=$project_location"} \
+    "$gradle_task" \
+    "$@"
+
+exec "$gradlew" "$@"
