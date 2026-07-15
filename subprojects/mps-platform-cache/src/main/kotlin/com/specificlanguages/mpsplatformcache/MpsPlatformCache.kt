@@ -2,6 +2,7 @@ package com.specificlanguages.mpsplatformcache
 
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.api.artifacts.result.UnresolvedDependencyResult
@@ -64,13 +65,21 @@ abstract class MpsPlatformCache @Inject constructor(
     fun getJbrRoot(configuration: Provider<out Configuration>): Provider<File> = configuration.map(::getJbrRoot)
 
     private fun getJbrRoot(configuration: Configuration): File {
-        val module = getSingleModuleIdentifier(configuration)
-        val classifier = configuration.resolvedConfiguration.resolvedArtifacts.single().classifier
+        // The configuration must resolve to exactly one JBR archive. The declared dependency may be a marker (e.g.
+        // com.jetbrains.mps:mps-jbr) that in turn depends on the actual JBR, so the cache location is derived from the
+        // resolved distribution artifact rather than the declared dependency.
+        val artifact = getSingleJbrArtifact(configuration)
 
-        val subPath = getJbrFolderPath(module, classifier)
+        val module = artifact.id.componentIdentifier
+        if (module !is ModuleComponentIdentifier) {
+            throw IllegalStateException(
+                "The JBR of configuration '${configuration.name}' must be a module artifact. It was resolved to $module instead.")
+        }
+
+        val subPath = getJbrFolderPath(module, artifact.classifier)
         val fullPath = cacheRoot.get().asFile.resolve(subPath)
 
-        extractRobustly(fullPath, configuration.files.single(), ::untgzNativelyTo)
+        extractRobustly(fullPath, artifact.file, ::untgzNativelyTo)
 
         return fullPath
     }
@@ -181,6 +190,16 @@ abstract class MpsPlatformCache @Inject constructor(
             File(distributionDir.parentFile, "${distributionDir.name}.lock")
 
         internal fun getCompletionFileForDistributionDir(distributionDir: File) = File(distributionDir, ".complete")
+
+        /**
+         * Resolve [configuration] to its single artifact, failing with a helpful message otherwise.
+         */
+        private fun getSingleJbrArtifact(configuration: Configuration): ResolvedArtifact {
+            val artifacts = configuration.resolvedConfiguration.resolvedArtifacts
+            return artifacts.singleOrNull()
+                ?: throw IllegalStateException(
+                    "Expected configuration '${configuration.name}' to resolve to a single artifact, but it resolved to ${artifacts.size} artifacts")
+        }
 
         /**
          * Resolve [configuration] to a single [ModuleComponentIdentifier]

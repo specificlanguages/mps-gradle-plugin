@@ -95,6 +95,76 @@ class JbrCachingTest {
     }
 
     @Test
+    fun `getJbrRoot caches JBR reached through a marker`(@TempDir testProjectDir: File, @TempDir markerRepoDir: File) {
+        val markerVersion = "1.0-test"
+        val markerPom = markerRepoDir.resolve("com/jetbrains/mps/mps-jbr/$markerVersion/mps-jbr-$markerVersion.pom")
+        markerPom.parentFile.mkdirs()
+        markerPom.writeText(
+            """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>com.jetbrains.mps</groupId>
+              <artifactId>mps-jbr</artifactId>
+              <version>$markerVersion</version>
+              <packaging>pom</packaging>
+              <dependencies>
+                <dependency>
+                  <groupId>com.jetbrains.jdk</groupId>
+                  <artifactId>jbr_jcef</artifactId>
+                  <version>$JBR_VERSION</version>
+                </dependency>
+              </dependencies>
+            </project>
+            """.trimIndent()
+        )
+
+        testProjectDir.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                id("com.specificlanguages.jbr-toolchain")
+            }
+
+            dependencies {
+                jbr("com.jetbrains.mps:mps-jbr:$markerVersion")
+            }
+
+            repositories {
+                maven("${markerRepoDir.toURI()}")
+                maven("https://artifacts.itemis.cloud/repository/maven-mps")
+            }
+
+            val printJbrRoot by tasks.registering {
+                val jbrRoot = mpsPlatformCache.getJbrRoot(configurations.jbr)
+
+                doLast {
+                    println("JBR root: ${'$'}{jbrRoot.get()}")
+                }
+            }
+            """.trimIndent()
+        )
+
+        val result = GradleRunner.create()
+            .withProjectDir(testProjectDir)
+            .withArguments(":printJbrRoot")
+            .withPluginClasspath()
+            .build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":printJbrRoot")?.outcome)
+
+        val jbrRootMatch = Regex("^JBR root:(.*)$", RegexOption.MULTILINE).find(result.output)
+        assertNotNull(jbrRootMatch, "output should contain 'JBR root:' but was: ${result.output}")
+
+        val jbrRoot = jbrRootMatch!!.groupValues[1].trim()
+        assertThat(
+            "JBR reached through a marker should be cached under its own coordinates",
+            jbrRoot,
+            containsString("mps-platform-cache${File.separator}jbr_jcef${File.separator}$JBR_VERSION")
+        )
+        assertTrue(File(jbrRoot).isDirectory, "JBR root should be a directory: $jbrRoot")
+    }
+
+    @Test
     fun projectsShareJbr(@TempDir project1Dir: File, @TempDir project2Dir: File, @TempDir sharedCacheDir: File) {
         val projectDirs = listOf(project1Dir, project2Dir)
 
