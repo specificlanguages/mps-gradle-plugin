@@ -62,7 +62,7 @@ class JbrToolchainTest {
 
         assertThat(
             exception.message,
-            containsString("Expected a single dependency for configuration 'jbr', found 0 dependencies")
+            containsString("Expected configuration 'jbr' to resolve to a single artifact, but it resolved to 0 artifacts")
         )
     }
 
@@ -83,7 +83,7 @@ class JbrToolchainTest {
 
         assertThat(
             exception.message,
-            containsString("Expected a single dependency for configuration 'jbr', found 2 dependencies")
+            containsString("Expected configuration 'jbr' to resolve to a single artifact, but it resolved to 2 artifacts")
         )
     }
 

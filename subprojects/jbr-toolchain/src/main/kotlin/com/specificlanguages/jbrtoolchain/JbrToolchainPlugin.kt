@@ -4,6 +4,7 @@ import com.specificlanguages.jbrtoolchain.internal.JbrOsArch
 import com.specificlanguages.mpsplatformcache.MpsPlatformCachePlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.component.ModuleComponentSelector
 
 abstract class JbrToolchainPlugin : Plugin<Project> {
 
@@ -18,8 +19,15 @@ abstract class JbrToolchainPlugin : Plugin<Project> {
 
                 resolutionStrategy.dependencySubstitution {
                     all {
-                        artifactSelection {
-                            selectArtifact("tgz", null, jbrOsArch.classifier)
+                        // Add the platform classifier to the JBR distribution artifact only. A marker such as
+                        // com.jetbrains.mps:mps-jbr carries no platform-specific archive, it only declares a
+                        // dependency on the matching JBR version, so classifier selection must skip it and apply
+                        // to the JBR it depends on instead.
+                        val requested = requested
+                        if (requested is ModuleComponentSelector && isJbrDistribution(requested)) {
+                            artifactSelection {
+                                selectArtifact("tgz", null, jbrOsArch.classifier)
+                            }
                         }
                     }
                 }
@@ -34,5 +42,8 @@ abstract class JbrToolchainPlugin : Plugin<Project> {
             extensions.create("jbrToolchain", JbrToolchainExtension::class.java, jbrSpec)
         }
     }
+
+    private fun isJbrDistribution(selector: ModuleComponentSelector): Boolean =
+        selector.group == "com.jetbrains.jdk"
 
 }

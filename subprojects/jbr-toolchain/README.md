@@ -14,6 +14,10 @@ dependencies {
     // The plugin creates 'jbr' configuration and sets up dependency substitution to download the correct artifact for
     // the current platform based on the specified dependency
     jbr("com.jetbrains.jdk:jbr_jcef:21.0.5-b631.8")
+
+    // Alternatively, depend on a marker artifact that declares a dependency on the matching JBR version. This lets you
+    // specify the MPS version and get the JBR that MPS uses without having to look up the JBR version yourself.
+    // jbr("com.jetbrains.mps:mps-jbr:2024.3")
 }
 
 repositories {
@@ -79,7 +83,9 @@ The jbr-toolchain plugin solves these problems at a cost of slightly higher impl
 
 The plugin creates a configuration called `jbr` and sets
 up [dependency substitution](https://docs.gradle.org/current/userguide/resolution_rules.html#sec:dependency-substitution-rules)
-to add a classifier corresponding to the current operating system and architecture (e.g. `osx-aarch64`).
+to add a classifier corresponding to the current operating system and architecture (e.g. `osx-aarch64`) to the JBR
+distribution artifact (any `com.jetbrains.jdk` dependency). Marker artifacts that merely point at a JBR version, such as
+`com.jetbrains.mps:mps-jbr`, are left untouched and resolved for their transitive dependency on the actual JBR.
 
 The extracted JBR is cached using [mps-platform-cache](../mps-platform-cache). The cache is by default placed under the
 root project's build directory, but the location can be changed to e.g., a directory in the user's home folder. The use
