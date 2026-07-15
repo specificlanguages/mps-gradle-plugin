@@ -4,8 +4,6 @@ import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
-import org.gradle.api.artifacts.result.ResolvedDependencyResult
-import org.gradle.api.artifacts.result.UnresolvedDependencyResult
 import org.gradle.api.file.*
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.model.ObjectFactory
@@ -52,12 +50,14 @@ abstract class MpsPlatformCache @Inject constructor(
     }
 
     private fun getMpsRoot(configuration: Configuration): File {
-        val module = getSingleModuleIdentifier(configuration)
+        // The configuration must resolve to exactly one MPS distribution. The cache location is derived from the
+        // resolved artifact's coordinates, so it works whether MPS is declared directly or reached transitively.
+        val artifact = getSingleArtifact(configuration)
 
-        val subPath = getMpsFolderPath(module)
+        val subPath = getMpsFolderPath(getModuleComponentId(artifact, configuration))
         val fullPath = cacheRoot.get().asFile.resolve(subPath)
 
-        extractRobustly(fullPath, configuration.files.single(), ::unzipTo)
+        extractRobustly(fullPath, artifact.file, ::unzipTo)
 
         return fullPath
     }
@@ -68,15 +68,9 @@ abstract class MpsPlatformCache @Inject constructor(
         // The configuration must resolve to exactly one JBR archive. The declared dependency may be a marker (e.g.
         // com.jetbrains.mps:mps-jbr) that in turn depends on the actual JBR, so the cache location is derived from the
         // resolved distribution artifact rather than the declared dependency.
-        val artifact = getSingleJbrArtifact(configuration)
+        val artifact = getSingleArtifact(configuration)
 
-        val module = artifact.id.componentIdentifier
-        if (module !is ModuleComponentIdentifier) {
-            throw IllegalStateException(
-                "The JBR of configuration '${configuration.name}' must be a module artifact. It was resolved to $module instead.")
-        }
-
-        val subPath = getJbrFolderPath(module, artifact.classifier)
+        val subPath = getJbrFolderPath(getModuleComponentId(artifact, configuration), artifact.classifier)
         val fullPath = cacheRoot.get().asFile.resolve(subPath)
 
         extractRobustly(fullPath, artifact.file, ::untgzNativelyTo)
@@ -191,39 +185,32 @@ abstract class MpsPlatformCache @Inject constructor(
         /**
          * Resolve [configuration] to its single artifact, failing with a helpful message otherwise.
          */
-        private fun getSingleJbrArtifact(configuration: Configuration): ResolvedArtifact {
-            val artifacts = configuration.resolvedConfiguration.resolvedArtifacts
+        private fun getSingleArtifact(configuration: Configuration): ResolvedArtifact {
+            val resolvedConfiguration = configuration.resolvedConfiguration
+            if (resolvedConfiguration.hasError()) {
+                try {
+                    resolvedConfiguration.rethrowFailure()
+                } catch (e: Exception) {
+                    throw IllegalStateException("Could not resolve configuration '${configuration.name}'", e)
+                }
+            }
+
+            val artifacts = resolvedConfiguration.resolvedArtifacts
             return artifacts.singleOrNull()
                 ?: throw IllegalStateException(
                     "Expected configuration '${configuration.name}' to resolve to a single artifact, but it resolved to ${artifacts.size} artifacts")
         }
 
         /**
-         * Resolve [configuration] to a single [ModuleComponentIdentifier]
+         * Return the [ModuleComponentIdentifier] of the module that produced [artifact].
          */
-        private fun getSingleModuleIdentifier(configuration: Configuration): ModuleComponentIdentifier {
-            val resolutionResult = configuration.incoming.resolutionResult
-            val dependencies = resolutionResult.root.dependencies
-            val dependencyResult = dependencies.singleOrNull()
-                ?: throw IllegalStateException("Expected a single dependency for configuration '${configuration.name}', found ${dependencies.size} dependencies")
-
-            if (dependencyResult is UnresolvedDependencyResult) {
+        private fun getModuleComponentId(artifact: ResolvedArtifact, configuration: Configuration): ModuleComponentIdentifier {
+            val id = artifact.id.componentIdentifier
+            if (id !is ModuleComponentIdentifier) {
                 throw IllegalStateException(
-                    "Could not resolve configuration '${configuration.name}'",
-                    dependencyResult.failure
-                )
+                    "Configuration '${configuration.name}' must resolve to a module artifact. It was resolved to $id instead.")
             }
-
-            if (dependencyResult !is ResolvedDependencyResult) {
-                // Shouldn't happen
-                throw IllegalStateException("Could not resolve configuration '${configuration.name}': $dependencyResult")
-            }
-
-            val selectedId = dependencyResult.selected.id
-            if (selectedId !is ModuleComponentIdentifier) {
-                throw IllegalStateException("Configuration '${configuration.name}' must contain a module dependency. The dependency was resolved to $selectedId instead.")
-            }
-            return selectedId
+            return id
         }
     }
 }

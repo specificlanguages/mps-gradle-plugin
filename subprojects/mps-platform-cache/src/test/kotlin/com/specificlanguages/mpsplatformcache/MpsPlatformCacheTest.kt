@@ -113,6 +113,79 @@ class MpsPlatformCacheTest {
         assertThat("MPS root should be in mps-platform-cache/mps-prerelease folder", mpsRoot, containsString("mps-platform-cache${File.separator}mps-prerelease${File.separator}$mpsVersion"))
     }
 
+    @Test
+    fun `getMpsRoot caches MPS reached transitively`(@TempDir testProjectDir: File, @TempDir markerRepoDir: File) {
+        val markerVersion = "1.0-test"
+        val markerPom = markerRepoDir.resolve("com/example/mps-marker/$markerVersion/mps-marker-$markerVersion.pom")
+        markerPom.parentFile.mkdirs()
+        markerPom.writeText(
+            """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <project xmlns="http://maven.apache.org/POM/4.0.0">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>com.example</groupId>
+              <artifactId>mps-marker</artifactId>
+              <version>$markerVersion</version>
+              <packaging>pom</packaging>
+              <dependencies>
+                <dependency>
+                  <groupId>com.jetbrains</groupId>
+                  <artifactId>mps</artifactId>
+                  <version>$MPS_VERSION</version>
+                  <type>zip</type>
+                </dependency>
+              </dependencies>
+            </project>
+            """.trimIndent()
+        )
+
+        testProjectDir.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                id("com.specificlanguages.mps-platform-cache")
+            }
+
+            val mps by configurations.registering
+
+            dependencies {
+                mps("com.example:mps-marker:$markerVersion")
+            }
+
+            repositories {
+                maven("${markerRepoDir.toURI()}")
+                maven("https://artifacts.itemis.cloud/repository/maven-mps")
+            }
+
+            val printMpsRoot by tasks.registering {
+                val mpsRoot = mpsPlatformCache.getMpsRoot(mps)
+
+                doLast {
+                    println("MPS root: ${'$'}{mpsRoot.get()}")
+                }
+            }
+            """.trimIndent()
+        )
+
+        val result = GradleRunner.create()
+            .withProjectDir(testProjectDir)
+            .withArguments(":printMpsRoot")
+            .withPluginClasspath()
+            .build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":printMpsRoot")?.outcome)
+
+        val mpsRootMatch = Regex("^MPS root:(.*)$", RegexOption.MULTILINE).find(result.output)
+        assertTrue(mpsRootMatch != null, "output should contain 'MPS root:' but was: ${result.output}")
+
+        val mpsRoot = mpsRootMatch!!.groupValues[1].trim()
+        assertThat(
+            "MPS reached transitively should be cached under its own coordinates",
+            mpsRoot,
+            containsString("mps-platform-cache${File.separator}mps${File.separator}$MPS_VERSION")
+        )
+        assertTrue(File(mpsRoot).isDirectory, "MPS root should be a directory: $mpsRoot")
+    }
+
 
     @Test
     fun `error when configuration has no dependencies`(@TempDir testProjectDir: File) {
@@ -145,12 +218,12 @@ class MpsPlatformCacheTest {
         assertEquals(TaskOutcome.FAILED, result.task(":printMpsRoot")?.outcome)
         assertThat(
             result.output,
-            containsString("Expected a single dependency for configuration 'mps', found 0 dependencies")
+            containsString("Expected configuration 'mps' to resolve to a single artifact, but it resolved to 0 artifacts")
         )
     }
 
     @Test
-    fun `error when configuration has multiple dependencies`(@TempDir testProjectDir: File) {
+    fun `error when configuration resolves to multiple artifacts`(@TempDir testProjectDir: File) {
         testProjectDir.resolve("build.gradle.kts").writeText(
             """
             plugins {
@@ -161,7 +234,7 @@ class MpsPlatformCacheTest {
 
             dependencies {
                 mps("com.jetbrains:mps:$MPS_VERSION")
-                add("mps", "com.jetbrains:mps:2024.2")
+                add("mps", "com.jetbrains.mps:mps-prerelease:$MPS_PRERELEASE_VERSION")
             }
 
             repositories.maven("https://artifacts.itemis.cloud/repository/maven-mps")
@@ -185,7 +258,7 @@ class MpsPlatformCacheTest {
         assertEquals(TaskOutcome.FAILED, result.task(":printMpsRoot")?.outcome)
         assertThat(
             result.output,
-            containsString("Expected a single dependency for configuration 'mps'")
+            containsString("Expected configuration 'mps' to resolve to a single artifact, but it resolved to 2 artifacts")
         )
     }
 
