@@ -11,7 +11,7 @@ jobs:
     name: Publish ${{ github.ref_name }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The version-policy check compares against earlier release tags, so it needs full history.
           fetch-depth: 0
