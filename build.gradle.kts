@@ -7,7 +7,7 @@ evaluationDependsOnChildren()
 val moduleInfos = subprojects.map { subproject ->
     val dependencies = listOf("api", "implementation")
         .mapNotNull { subproject.configurations.findByName(it) }
-        .flatMap { it.dependencies.withType(ProjectDependency::class.java).map(ProjectDependency::getName) }
+        .flatMap { it.dependencies.withType<ProjectDependency>().map(ProjectDependency::getName) }
         .toSet()
     ModuleInfo(
         name = subproject.name,
@@ -23,7 +23,7 @@ val moduleInfos = subprojects.map { subproject ->
 tasks.register<CheckReleaseVersionsTask>("checkReleaseVersions") {
     group = "verification"
     description = "Checks that modules depending on a changed module are bumped, and that API changes are versioned."
-    modules.set(moduleInfos)
-    repositoryRoot.set(layout.projectDirectory)
+    modules = moduleInfos
+    repositoryRoot = layout.projectDirectory
     dependsOn(subprojects.map { "${it.path}:checkApiCompatibility" })
 }

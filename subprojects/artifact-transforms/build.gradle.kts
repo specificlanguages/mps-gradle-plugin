@@ -9,7 +9,7 @@ gradlePlugin {
             implementationClass = "com.specificlanguages.mps.ArtifactTransforms"
             displayName = "MPS Artifact Transforms"
             description = "Artifact transforms that help share MPS distribution among multiple projects"
-            tags.set(listOf("jetbrainsMps", "artifactTransform"))
+            tags = listOf("jetbrainsMps", "artifactTransform")
         }
     }
 }

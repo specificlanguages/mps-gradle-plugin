@@ -30,7 +30,7 @@ gradlePlugin {
             implementationClass = "com.specificlanguages.mps.MpsPlugin"
             displayName = "MPS Build Plugin"
             description = "Build JetBrains MPS projects using a simple declarative configuration model"
-            tags.set(listOf("jetbrainsMps"))
+            tags = listOf("jetbrainsMps")
         }
     }
 }
