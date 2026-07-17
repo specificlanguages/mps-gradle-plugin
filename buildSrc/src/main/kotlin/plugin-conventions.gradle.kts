@@ -1,4 +1,6 @@
 import com.specificlanguages.buildlogic.ApiCompatibilityCheckTask
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     java
@@ -10,6 +12,17 @@ plugins {
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
     withSourcesJar()
+}
+
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events(TestLogEvent.FAILED)
+        // The tests run nested Gradle builds through TestKit, which report their failures in the exception
+        // message. Without the full format, the reason a nested build failed is lost.
+        exceptionFormat = TestExceptionFormat.FULL
+        showCauses = true
+        showStackTraces = true
+    }
 }
 
 gradlePlugin {
