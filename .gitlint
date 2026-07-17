@@ -1,0 +1,9 @@
+[general]
+contrib=contrib-title-conventional-commits
+ignore-merge-commits=true
+ignore-revert-commits=true
+# Single-line commit messages are fine; only the title format is enforced.
+ignore=body-is-missing
+
+[contrib-title-conventional-commits]
+types = feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert
