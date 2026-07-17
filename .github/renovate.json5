@@ -1,0 +1,33 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+  ],
+
+  // The MPS and JBR versions in the test projects are fixtures: they pin the MPS release the
+  // plugin is tested against, and the JBR that MPS release requires. They are updated by hand.
+  ignorePaths: [
+    '**/etc/test-projects/**',
+  ],
+
+  packageRules: [
+    {
+      matchDatasources: ['maven'],
+      matchPackageNames: [
+        'de.itemis.mps.build-backends:launcher',
+        'de.itemis.mps:mps-gradle-plugin',
+      ],
+      groupName: 'itemis MPS dependencies',
+      registryUrls: [
+        'https://artifacts.itemis.cloud/repository/maven-mps/',
+      ],
+    },
+    // The 2.x line of the mbeddr plugin is not adopted. Stay on 1.x; later major lines
+    // (3.x and up) are still offered.
+    {
+      matchDatasources: ['maven'],
+      matchPackageNames: ['de.itemis.mps:mps-gradle-plugin'],
+      allowedVersions: '!/^2\\./',
+    },
+  ],
+}
