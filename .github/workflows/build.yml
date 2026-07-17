@@ -1,19 +1,17 @@
-name: Test jbr-toolchain
+name: Build
 
 on:
+  pull_request:
   push:
-    paths:
-      - 'buildSrc/**'
-      - 'gradle/**'
-      - '*.gradle.kts'
-      - 'subprojects/jbr-toolchain/**'
-      - '.github/workflows/jbr-toolchain.yml'
+    branches: [master]
 
 jobs:
   build:
-    name: Test on ${{ matrix.os }}
+    name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      # Report the result for every platform rather than stopping at the first failure.
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
 
@@ -25,4 +23,4 @@ jobs:
           distribution: jetbrains
           java-version: 17
       - name: Build
-        run: ./gradlew :jbr-toolchain:build
+        run: ./gradlew build
