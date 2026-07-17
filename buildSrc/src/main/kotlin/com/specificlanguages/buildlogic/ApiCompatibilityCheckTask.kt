@@ -10,7 +10,6 @@ import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
-import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 /**
@@ -43,15 +42,16 @@ abstract class ApiCompatibilityCheckTask @Inject constructor(
     @TaskAction
     fun check() {
         val module = moduleName.get()
+        val root = repositoryRoot.get().asFile
 
-        val tags = git("tag", "--list", "$module-*").lines().filter { it.isNotBlank() }
-        val baselineVersion = selectLatestRelease(tags.map { it.removePrefix("$module-") })
+        val baselineVersion = latestReleaseVersion(execOperations, root, module)
         if (baselineVersion == null) {
             logger.lifecycle("No released baseline for '$module'; skipping API compatibility check.")
             return
         }
 
-        val baselineApi = git("show", "$module-$baselineVersion:${apiFilePath.get()}", ignoreExitValue = true)
+        val baselineApi = git(execOperations, root, "show", "$module-$baselineVersion:${apiFilePath.get()}",
+            ignoreExitValue = true).output
         val currentApi = currentApiFile.files.singleOrNull()?.takeIf { it.exists() }?.readText().orEmpty()
 
         val required = requiredLevelFromApiDiff(baselineApi, currentApi)
@@ -63,16 +63,5 @@ abstract class ApiCompatibilityCheckTask @Inject constructor(
                     "${required.name.lowercase()} version bump, but $baselineVersion -> ${targetVersion.get()} " +
                     "is $actualText.")
         }
-    }
-
-    private fun git(vararg args: String, ignoreExitValue: Boolean = false): String {
-        val output = ByteArrayOutputStream()
-        execOperations.exec {
-            workingDir = repositoryRoot.get().asFile
-            commandLine = listOf("git") + args
-            standardOutput = output
-            isIgnoreExitValue = ignoreExitValue
-        }
-        return output.toString(Charsets.UTF_8)
     }
 }

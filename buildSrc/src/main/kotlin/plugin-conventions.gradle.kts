@@ -28,7 +28,7 @@ repositories {
 // API is taken from the binary-compatibility-validator `.api` dump, compared against its last released version.
 tasks.register<ApiCompatibilityCheckTask>("checkApiCompatibility") {
     moduleName.set(project.name)
-    targetVersion.set(project.version.toString())
+    targetVersion.set(project.version.toString().removeSuffix("-SNAPSHOT"))
     currentApiFile.from(layout.projectDirectory.file("api/${project.name}.api"))
     apiFilePath.set("subprojects/${project.name}/api/${project.name}.api")
     repositoryRoot.set(rootProject.layout.projectDirectory)
