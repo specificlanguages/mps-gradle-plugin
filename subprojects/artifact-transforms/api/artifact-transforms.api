@@ -14,6 +14,8 @@ public final class com/specificlanguages/mps/ArtifactTransforms$Companion {
 
 public abstract class com/specificlanguages/mps/UnzipMps : org/gradle/api/artifacts/transform/TransformAction {
 	public fun <init> ()V
+	protected abstract fun getArchiveOperations ()Lorg/gradle/api/file/ArchiveOperations;
+	protected abstract fun getFileSystemOperations ()Lorg/gradle/api/file/FileSystemOperations;
 	public abstract fun getInputArtifact ()Lorg/gradle/api/provider/Provider;
 	public fun transform (Lorg/gradle/api/artifacts/transform/TransformOutputs;)V
 }

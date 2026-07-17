@@ -10,7 +10,6 @@ import org.gradle.api.invocation.Gradle
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
-import org.gradle.kotlin.dsl.support.unzipTo
 import org.gradle.process.ExecOperations
 import java.io.File
 import java.nio.channels.FileChannel
@@ -42,6 +41,13 @@ abstract class MpsPlatformCache @Inject constructor(
                 else -> path
             }
         return layout.projectDirectory.dir(expandedPath)
+    }
+
+    private fun unzipTo(srcZip: File, destDir: File) {
+        fileSystemOperations.copy {
+            from(archiveOperations.zipTree(srcZip))
+            into(destDir)
+        }
     }
 
     private fun getMpsRoot(configuration: Configuration): File {
