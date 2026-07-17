@@ -20,12 +20,12 @@ tasks.test {
 
 gradlePlugin {
     plugins {
-        create("mpsPlatformCache") {
+        register("mpsPlatformCache") {
             id = "com.specificlanguages.mps-platform-cache"
             implementationClass = "com.specificlanguages.mpsplatformcache.MpsPlatformCachePlugin"
             displayName = "MPS Platform Cache"
             description = "Cache MPS and JBR distributions across multiple independent builds"
-            tags.set(listOf("jetbrainsMps"))
+            tags = listOf("jetbrainsMps")
         }
     }
 }

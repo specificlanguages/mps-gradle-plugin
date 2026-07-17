@@ -9,7 +9,7 @@ gradlePlugin {
             implementationClass = "com.specificlanguages.jbrtoolchain.JbrToolchainPlugin"
             displayName = "JBR Toolchain"
             description = "Download a specific version of the JetBrains Runtime (JBR) and expose it as a JVM toolchain"
-            tags.set(listOf("jetbrainsRuntime", "jbr"))
+            tags = listOf("jetbrainsRuntime", "jbr")
         }
     }
 }
