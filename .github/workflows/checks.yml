@@ -1,0 +1,51 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  # Required gate. Pull requests are rebase-merged, so every commit lands on master as-is and must be a
+  # Conventional Commit.
+  commit-messages:
+    name: Conventional commit messages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install gitlint==0.19.1
+      - name: Lint commit messages
+        run: gitlint --commits ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+
+  # Runs the file-content hooks from .pre-commit-config.yaml. Only a commit-msg hook exists today, so this
+  # passes until content hooks are added.
+  prek:
+    name: prek hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: j178/prek-action@v2
+
+  # Fails if a public API change is not matched by a version bump, or if a changed module's dependents are not
+  # bumped. Needs full history and release tags.
+  version-policy:
+    name: Release version policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch tags
+        run: git fetch --tags --force
+      - uses: actions/setup-java@v4
+        with:
+          distribution: jetbrains
+          java-version: 17
+      - name: Check release versions
+        run: ./gradlew checkReleaseVersions

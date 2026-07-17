@@ -20,3 +20,16 @@ no separate gitlint installation is needed.
 
 Pull requests are rebase-merged, so each commit you push lands on `master` as-is — keep every commit message
 conventional, not just the pull request title.
+
+## Versioning
+
+Each module under `subprojects/` is versioned independently in its own `gradle.properties` and released by tagging
+`<module>-<version>`. Two checks guard the versioning, both run in CI and available locally:
+
+- `./gradlew checkApiCompatibility` fails a module whose public API changed more than its version bump allows
+  (a removed or changed declaration needs a major bump, a new one a minor bump), comparing the
+  binary-compatibility-validator `.api` dump against the module's last release.
+- `./gradlew checkReleaseVersions` additionally fails if a changed module's dependents have not been bumped, so a
+  fix in a module is always propagated into a new release of everything that depends on it.
+
+When you change a module, bump its version accordingly and bump every module that depends on it by at least a patch.
