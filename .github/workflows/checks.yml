@@ -13,10 +13,10 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.14'
       - run: pip install gitlint==0.19.1
@@ -37,7 +37,7 @@ jobs:
     name: prek hooks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: j178/prek-action@v2
 
   # Fails if a public API change is not matched by a version bump, or if a changed module's dependents are not
@@ -46,12 +46,12 @@ jobs:
     name: Release version policy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fetch tags
         run: git fetch --tags --force
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: jetbrains
           java-version: 17
