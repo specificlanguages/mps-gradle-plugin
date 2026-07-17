@@ -2,8 +2,6 @@ plugins {
     `plugin-conventions`
 }
 
-version = "1.1.0-SNAPSHOT"
-
 gradlePlugin {
     plugins {
         register("artifactTransforms") {
