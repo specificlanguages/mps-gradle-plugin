@@ -38,7 +38,7 @@ jobs:
           fi
           echo "module=$MODULE" >> "$GITHUB_OUTPUT"
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: jetbrains
           java-version: 17
