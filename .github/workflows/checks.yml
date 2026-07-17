@@ -21,7 +21,15 @@ jobs:
           python-version: '3.11'
       - run: pip install gitlint==0.19.1
       - name: Lint commit messages
-        run: gitlint --commits ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+        # Locally, .gitlint ignores WIP titles and fixup!/squash! commits so contributors can use them as
+        # checkpoints during interactive rebase. On pull requests every commit lands on master as-is, so
+        # re-enable both checks here.
+        run: |
+          gitlint --commits ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} \
+            -c general.ignore=body-is-missing \
+            -c general.ignore-fixup-commits=false \
+            -c general.ignore-squash-commits=false \
+            -c general.ignore-fixup-amend-commits=false
 
   # Runs the file-content hooks from .pre-commit-config.yaml. Only a commit-msg hook exists today, so this
   # passes until content hooks are added.
