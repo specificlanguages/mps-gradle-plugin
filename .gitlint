@@ -6,11 +6,11 @@ ignore-revert-commits=true
 # Single-line commit messages are fine; only the title format is enforced.
 # T5 (no WIP) is ignored here so local commits can use "wip" as a checkpoint marker; it is
 # re-enabled in CI for pull requests, along with fixup/squash commit checks, in checks.yml.
-ignore=body-is-missing,T5
+ignore=body-is-missing,title-must-not-contain-word
 
 [contrib-title-conventional-commits]
 types = feat,fix,docs,style,refactor,perf,test,build,ci,chore,revert
 
 [ignore-by-author-name]
 regex=^renovate\[bot\]$
-ignore=T1,body-min-length
+ignore=title-max-length,body-min-length,body-is-missing
