@@ -24,3 +24,13 @@ jobs:
           java-version: 17
       - name: Build
         run: ./gradlew build
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.os }}
+          path: |
+            subprojects/*/build/reports/tests/
+            subprojects/*/build/test-results/
+          # A failing build is expected to produce reports; say so loudly if it did not.
+          if-no-files-found: warn
