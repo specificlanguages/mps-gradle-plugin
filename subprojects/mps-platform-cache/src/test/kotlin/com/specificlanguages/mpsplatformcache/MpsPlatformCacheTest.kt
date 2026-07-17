@@ -16,7 +16,12 @@ import kotlin.concurrent.thread
 class MpsPlatformCacheTest {
     companion object {
         private const val MPS_VERSION = "2024.3.1"
-        private const val MPS_PRERELEASE_VERSION = "253.28294.10133"
+
+        /**
+         * Prereleases are removed from the repository after some time, so the tests resolve the latest one that is
+         * available rather than a fixed version.
+         */
+        private const val MPS_PRERELEASE_VERSION = "+"
     }
 
     @Test
@@ -79,8 +84,10 @@ class MpsPlatformCacheTest {
 
             val printMpsRoot by tasks.registering {
                 val mpsRoot = mpsPlatformCache.getMpsRoot(mps)
+                val mpsVersion = mps.map { it.resolvedConfiguration.resolvedArtifacts.single().moduleVersion.id.version }
 
                 doLast {
+                    println("MPS version: ${'$'}{mpsVersion.get()}")
                     println("MPS root: ${'$'}{mpsRoot.get()}")
                 }
             }
@@ -95,11 +102,15 @@ class MpsPlatformCacheTest {
 
         assertEquals(TaskOutcome.SUCCESS, result.task(":printMpsRoot")?.outcome)
 
+        val mpsVersionMatch = Regex("^MPS version:(.*)$", RegexOption.MULTILINE).find(result.output)
+        assertTrue(mpsVersionMatch != null, "output should contain 'MPS version:' but was: ${result.output}")
+        val mpsVersion = mpsVersionMatch!!.groupValues[1].trim()
+
         val mpsRootMatch = Regex("^MPS root:(.*)$", RegexOption.MULTILINE).find(result.output)
         assertTrue(mpsRootMatch != null, "output should contain 'MPS root:' but was: ${result.output}")
 
         val mpsRoot = mpsRootMatch!!.groupValues[1].trim()
-        assertThat("MPS root should be in mps-platform-cache/mps-prerelease folder", mpsRoot, containsString("mps-platform-cache${File.separator}mps-prerelease${File.separator}$MPS_PRERELEASE_VERSION"))
+        assertThat("MPS root should be in mps-platform-cache/mps-prerelease folder", mpsRoot, containsString("mps-platform-cache${File.separator}mps-prerelease${File.separator}$mpsVersion"))
     }
 
 
