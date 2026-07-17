@@ -10,7 +10,6 @@ import org.gradle.api.invocation.Gradle
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
-import org.gradle.kotlin.dsl.support.unzipTo
 import org.gradle.process.ExecOperations
 import java.io.File
 import java.nio.channels.FileChannel
@@ -42,6 +41,13 @@ abstract class MpsPlatformCache @Inject constructor(
                 else -> path
             }
         return layout.projectDirectory.dir(expandedPath)
+    }
+
+    private fun unzipTo(destDir: File, srcZip: File) {
+        fileSystemOperations.copy {
+            from(archiveOperations.zipTree(srcZip))
+            into(destDir)
+        }
     }
 
     private fun getMpsRoot(configuration: Configuration): File {
@@ -94,6 +100,9 @@ abstract class MpsPlatformCache @Inject constructor(
     /**
      * Ensures that [distributionDir] contains an extracted distribution. Uses file locking to prevent concurrent
      * extraction from multiple builds. Cleans up partial extractions if the previous attempt failed.
+     *
+     * [extract] is called with the destination directory first and the archive to extract second. Both are `File`,
+     * so the compiler does not catch the two being swapped.
      */
     private fun extractRobustly(distributionDir: File, inputFile: File, extract: BiConsumer<File, File>) {
         val completionFile = getCompletionFileForDistributionDir(distributionDir)
