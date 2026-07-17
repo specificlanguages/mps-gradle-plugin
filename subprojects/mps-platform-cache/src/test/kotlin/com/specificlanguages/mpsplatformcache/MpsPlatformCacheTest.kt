@@ -9,11 +9,25 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.nio.file.Files
+import java.util.Properties
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 class MpsPlatformCacheTest {
+    /**
+     * Points the project at [cacheRoot]. Writes the property through [Properties] rather than as plain text: a
+     * Windows path contains backslashes, which are escape characters in a properties file and are dropped when
+     * read back.
+     */
+    private fun writeCacheRootProperty(projectDir: File, cacheRoot: File) {
+        projectDir.resolve("gradle.properties").outputStream().use {
+            val gradleProperties = Properties()
+            gradleProperties["com.specificlanguages.mps-platform-cache.cacheRoot"] = cacheRoot.absolutePath
+            gradleProperties.store(it, null)
+        }
+    }
+
     companion object {
         private const val MPS_VERSION = "2024.3.1"
 
@@ -330,11 +344,7 @@ class MpsPlatformCacheTest {
                 }
                 """.trimIndent()
             )
-            dir.resolve("gradle.properties").writeText(
-                """
-                com.specificlanguages.mps-platform-cache.cacheRoot=${sharedCacheDir.absolutePath}
-                """.trimIndent()
-            )
+            writeCacheRootProperty(dir, sharedCacheDir)
         }
 
         val mpsRoots = projectDirs.map { projectDir ->
@@ -446,11 +456,7 @@ class MpsPlatformCacheTest {
                 }
                 """.trimIndent()
             )
-            dir.resolve("gradle.properties").writeText(
-                """
-                com.specificlanguages.mps-platform-cache.cacheRoot=${sharedCacheDir.absolutePath}
-                """.trimIndent()
-            )
+            writeCacheRootProperty(dir, sharedCacheDir)
         }
 
         // Use CountDownLatch to ensure all builds start at roughly the same time

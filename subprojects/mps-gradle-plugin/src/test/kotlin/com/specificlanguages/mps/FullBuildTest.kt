@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.util.Properties
 import java.util.zip.ZipFile
 
 class FullBuildTest {
@@ -62,9 +63,15 @@ class FullBuildTest {
             jarNames, hasItem(containsString("com.specificlanguages.json")))
     }
 
+    /**
+     * Writes the property through [Properties] rather than as plain text: a Windows path contains backslashes,
+     * which are escape characters in a properties file and are dropped when read back.
+     */
     private fun writeGradleProperties(projectDir: File) {
-        projectDir.resolve("gradle.properties").writeText(
-            "com.specificlanguages.mps-platform-cache.cacheRoot=${CACHE_ROOT.absolutePath}\n"
-        )
+        projectDir.resolve("gradle.properties").outputStream().use {
+            val gradleProperties = Properties()
+            gradleProperties["com.specificlanguages.mps-platform-cache.cacheRoot"] = CACHE_ROOT.absolutePath
+            gradleProperties.store(it, null)
+        }
     }
 }
