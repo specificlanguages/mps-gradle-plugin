@@ -1,4 +1,7 @@
 import com.specificlanguages.buildlogic.ApiCompatibilityCheckTask
+import com.specificlanguages.buildlogic.CheckPublishedDependenciesTask
+import com.specificlanguages.buildlogic.PrepareReleaseTask
+import com.specificlanguages.buildlogic.TagReleaseTask
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
@@ -47,4 +50,49 @@ tasks.register<ApiCompatibilityCheckTask>("checkApiCompatibility") {
     currentApiFile.from(layout.projectDirectory.file("api/${project.name}.api"))
     apiFilePath = "subprojects/${project.name}/api/${project.name}.api"
     repositoryRoot = rootProject.layout.projectDirectory
+}
+
+// The version of a project dependency lands in the published POM as-is, so publishing must not proceed while
+// a dependency is at a snapshot version or at a release version that has not been published yet.
+val projectDependencyCoordinates = provider {
+    listOf("api", "implementation")
+        .mapNotNull { configurations.findByName(it) }
+        .flatMap { it.dependencies.withType<ProjectDependency>() }
+        .map { "${it.group}:${it.name}:${it.version}" }
+}
+
+val checkPublishedDependencies = tasks.register<CheckPublishedDependenciesTask>("checkPublishedDependencies") {
+    group = "verification"
+    description = "Checks that the published POM will not reference snapshot or unpublished dependencies."
+    moduleVersion = moduleVersionProvider
+    dependencyCoordinates = projectDependencyCoordinates
+    repositoryUrl = "https://plugins.gradle.org/m2"
+}
+
+tasks.named("publishPlugins") {
+    dependsOn(checkPublishedDependencies)
+}
+
+tasks.register<PrepareReleaseTask>("prepareRelease") {
+    group = "publishing"
+    description = "Sets the release version, patches the changelog, and creates the release commit."
+    moduleName = project.name
+    currentVersion = moduleVersionProvider
+    changelogFile = layout.projectDirectory.file("CHANGELOG.md")
+    propertiesFile = layout.projectDirectory.file("gradle.properties")
+    repositoryRoot = rootProject.layout.projectDirectory
+    dependsOn(":checkReleaseVersions")
+}
+
+tasks.register<TagReleaseTask>("tagRelease") {
+    group = "publishing"
+    description = "Creates the release tag on master after the release commit has been merged."
+    moduleName = project.name
+    currentVersion = moduleVersionProvider
+    changelogFile = layout.projectDirectory.file("CHANGELOG.md")
+    repositoryRoot = rootProject.layout.projectDirectory
+    dependsOn(":checkReleaseVersions")
+    // Pushing the tag triggers publishing, so an unpublishable state must surface before the tag exists,
+    // not in the publish workflow after the tag has already been pushed.
+    dependsOn(checkPublishedDependencies)
 }
