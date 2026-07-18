@@ -10,14 +10,35 @@
     '**/etc/test-projects/**',
   ],
 
+  // Enabled and grouped below so the gitlint hook rev is kept current alongside the other CI
+  // tooling, instead of going stale silently.
+  'pre-commit': {
+    enabled: true,
+  },
+
   packageRules: [
+    // One PR for every Gradle-ecosystem update (build/plugin dependencies, the wrapper, and the
+    // itemis MPS dependencies below), regardless of whether it's a major, minor, or patch bump.
+    {
+      matchManagers: ['gradle', 'gradle-wrapper'],
+      groupName: 'Gradle dependencies',
+      separateMajorMinor: false,
+    },
+    // One PR for GitHub Actions, pre-commit hook, and Python tooling updates. gitlint's version is
+    // pinned both as a pre-commit hook rev and in requirements.txt (used to run the same gitlint
+    // version over commit ranges in CI); grouping pip_requirements here keeps the two pins from
+    // drifting apart between merges.
+    {
+      matchManagers: ['github-actions', 'pre-commit', 'pip_requirements'],
+      groupName: 'GitHub Actions and pre-commit hooks',
+      separateMajorMinor: false,
+    },
     {
       matchDatasources: ['maven'],
       matchPackageNames: [
         'de.itemis.mps.build-backends:launcher',
         'de.itemis.mps:mps-gradle-plugin',
       ],
-      groupName: 'itemis MPS dependencies',
       registryUrls: [
         'https://artifacts.itemis.cloud/repository/maven-mps/',
       ],
