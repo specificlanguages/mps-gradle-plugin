@@ -7,5 +7,5 @@ junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", vers
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
 hamcrest = { module = "org.hamcrest:hamcrest", version = "3.0" }
-mps-launcher = { module = "de.itemis.mps.build-backends:launcher", version = "2.9.0.208.42ae13c" }
+mps-launcher = { module = "de.itemis.mps.build-backends:launcher", version = "2.9.1.211.acde161" }
 mbeddr-plugin = { module = "de.itemis.mps:mps-gradle-plugin", version = "1.31.0.1.1243113" }
