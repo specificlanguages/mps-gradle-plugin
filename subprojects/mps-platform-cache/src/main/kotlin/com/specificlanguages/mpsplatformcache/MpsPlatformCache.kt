@@ -12,14 +12,7 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.process.ExecOperations
 import java.io.File
-import java.nio.channels.FileChannel
-import java.nio.channels.FileLock
-import java.nio.channels.OverlappingFileLockException
-import java.nio.file.Files
-import java.nio.file.StandardOpenOption
-import java.time.Duration
-import java.util.concurrent.TimeUnit
-import java.util.function.BiConsumer
+import java.nio.file.Path
 import javax.inject.Inject
 
 abstract class MpsPlatformCache @Inject constructor(
@@ -47,10 +40,10 @@ abstract class MpsPlatformCache @Inject constructor(
         return layout.projectDirectory.dir(expandedPath)
     }
 
-    private fun unzipTo(destDir: File, srcZip: File) {
+    private fun unzipTo(srcZip: Path, destDir: Path) {
         fileSystemOperations.copy {
-            from(archiveOperations.zipTree(srcZip))
-            into(destDir)
+            from(archiveOperations.zipTree(srcZip.toFile()))
+            into(destDir.toFile())
         }
     }
 
@@ -62,7 +55,7 @@ abstract class MpsPlatformCache @Inject constructor(
         val subPath = getMpsFolderPath(getModuleComponentId(artifact, configuration))
         val fullPath = cacheRoot.get().asFile.resolve(subPath)
 
-        extractRobustly(fullPath, artifact.file, ::unzipTo)
+        ensureExtracted(artifact.file.toPath(), fullPath.toPath(), ::unzipTo)
 
         return fullPath
     }
@@ -78,7 +71,7 @@ abstract class MpsPlatformCache @Inject constructor(
         val subPath = getJbrFolderPath(getModuleComponentId(artifact, configuration), artifact.classifier)
         val fullPath = cacheRoot.get().asFile.resolve(subPath)
 
-        extractRobustly(fullPath, artifact.file, ::untgzNativelyTo)
+        ensureExtracted(artifact.file.toPath(), fullPath.toPath(), ::untgzNativelyTo)
 
         return fullPath
     }
@@ -105,99 +98,27 @@ abstract class MpsPlatformCache @Inject constructor(
         return commonPath + File.separator + id.version + classifierSuffix
     }
 
-    /**
-     * Ensures that [distributionDir] contains an extracted distribution. Uses file locking to prevent concurrent
-     * extraction across processes and retries overlapping locks for callers in the same JVM.
-     * Waits up to ten minutes to acquire the lock; extraction itself has no time limit.
-     * Cleans up partial extractions if the previous attempt failed.
-     *
-     * [extract] is called with the destination directory first and the archive to extract second. Both are `File`,
-     * so the compiler does not catch the two being swapped.
-     */
-    private fun extractRobustly(distributionDir: File, inputFile: File, extract: BiConsumer<File, File>) {
-        val completionFile = getCompletionFileForDistributionDir(distributionDir)
-        // Check if extraction is already complete
-        if (completionFile.exists()) {
-            return
-        }
-
-        val lockFile = getLockFileForDistributionDir(distributionDir)
-
-        // Use a file lock to coordinate between multiple builds
-        // Keep the lock file so waiting processes and new callers always lock the same file.
-        Files.createDirectories(lockFile.parentFile.toPath())
-        FileChannel.open(
-            lockFile.toPath(),
-            StandardOpenOption.CREATE,
-            StandardOpenOption.WRITE
-        ).use { channel ->
-            lockWithRetry(channel, distributionDir).use locked@{ _ ->
-                // Check if extraction was completed while we were waiting for the lock
-                if (completionFile.exists()) {
-                    return@locked
-                }
-
-                // Clean up any partial extraction from a previous failed attempt
-                if (distributionDir.exists()) {
-                    fileSystemOperations.delete {
-                        delete(distributionDir)
-                    }
-                }
-
-                // Create the target directory and extract
-                Files.createDirectories(distributionDir.toPath())
-                extract.accept(distributionDir, inputFile)
-
-                // Mark extraction as complete
-                completionFile.createNewFile()
-            }
+    private fun ensureExtracted(archive: Path, directory: Path, extract: (Path, Path) -> Unit) {
+        try {
+            DistributionExtraction(fileSystemOperations).ensureExtracted(archive, directory, extract)
+        } catch (e: ExtractionLockTimeoutException) {
+            throw GradleException(e.message, e)
         }
     }
 
-    private fun lockWithRetry(
-        channel: FileChannel,
-        distributionDir: File,
-        timeout: Duration = Duration.ofMinutes(10),
-    ): FileLock {
-        val startedNanos = System.nanoTime()
-        val timeoutNanos = timeout.toNanos()
-
-        val sleepIntervalUnit = TimeUnit.MILLISECONDS
-        val sleepIntervalMagnitude = 100L
-
-        while (true) {
-            if (Thread.currentThread().isInterrupted) {
-                throw InterruptedException("Interrupted while waiting to extract '$distributionDir'")
-            }
-            try {
-                channel.tryLock()?.let { return it }
-            } catch (_: OverlappingFileLockException) {
-                // tryLock returns null for other processes, but throws for overlapping locks in this JVM.
-            }
-            val elapsedNanos = System.nanoTime() - startedNanos
-            if (elapsedNanos >= timeoutNanos) {
-                throw GradleException(
-                    "Timed out waiting to extract '${distributionDir.absolutePath}' after " +
-                        "${TimeUnit.NANOSECONDS.toSeconds(elapsedNanos)}s (lock acquisition timeout: $timeout)"
-                )
-            }
-            sleepIntervalUnit.sleep(sleepIntervalMagnitude)
-        }
-    }
-
-    private fun untgzNativelyTo(outputDir: File, inputFile: File, componentsToStrip: Int = 1) {
+    private fun untgzNativelyTo(inputFile: Path, outputDir: Path, componentsToStrip: Int = 1) {
         if (Os.isFamily(Os.FAMILY_UNIX)) {
             // Use Unix utilities to properly deal with symlinks
             execOperations.exec {
-                commandLine("tar", "--strip-components=$componentsToStrip", "-xzf", inputFile.absolutePath)
-                workingDir = outputDir
+                commandLine("tar", "--strip-components=$componentsToStrip", "-xzf", inputFile.toAbsolutePath().toString())
+                workingDir = outputDir.toFile()
             }
         } else {
             // On Windows we don't worry about symlinks
-            // Using copy rather than sync because we assume we will get a fresh, empty directory from Gradle.
+            // Distribution extraction supplies a fresh, empty directory.
             fileSystemOperations.copy {
-                from(archiveOperations.tarTree(inputFile))
-                into(outputDir)
+                from(archiveOperations.tarTree(inputFile.toFile()))
+                into(outputDir.toFile())
                 includeEmptyDirs = false
 
                 if (componentsToStrip > 0) {
@@ -215,11 +136,6 @@ abstract class MpsPlatformCache @Inject constructor(
     }
 
     companion object {
-        internal fun getLockFileForDistributionDir(distributionDir: File) =
-            File(distributionDir.parentFile, "${distributionDir.name}.lock")
-
-        internal fun getCompletionFileForDistributionDir(distributionDir: File) = File(distributionDir, ".complete")
-
         /**
          * Resolve [configuration] to its single artifact, failing with a helpful message otherwise.
          */
