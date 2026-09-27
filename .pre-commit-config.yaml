@@ -7,7 +7,7 @@ repos:
         entry: prettier --write
         language: node
         additional_dependencies:
-          - prettier@3.9.7
+          - prettier@3.9.9
         types:
           - markdown
 
@@ -16,7 +16,7 @@ repos:
         entry: markdownlint-cli2
         language: node
         additional_dependencies:
-          - markdownlint-cli2@0.23.2
+          - markdownlint-cli2@0.23.3
         types:
           - markdown
 
