@@ -2,15 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 2.1.1
 
 ### Dependency updates
 
 - mps-platform-cache 1.0.2
-- 
+-
 
 ## 2.1.0
 
@@ -18,8 +18,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Integration with the [mbeddr Gradle plugin](https://github.com/mbeddr/mps-gradle-plugin): when
   `de.itemis.mps.gradle.common` is applied to the same project, its tasks (`MpsCheck`, `MpsExecute`, `MpsGenerate`,
-  `MpsMigrate`, `Remigrate`) use `mpsDefaults` for `mpsHome` and `javaLauncher`, and are configured with the MPS
-  plugins directory as a plugin root and with `mpsDefaults.pathVariables` as macros.
+  `MpsMigrate`, `Remigrate`) use `mpsDefaults` for `mpsHome` and `javaLauncher`, and are configured with the MPS plugins
+  directory as a plugin root and with `mpsDefaults.pathVariables` as macros.
 
 ### Changed
 
@@ -65,8 +65,8 @@ Further changes are listed below.
 
 - Some classes, extensions and tasks were moved around and renamed.
 - The plugin no longer applies the `java-base` plugin.
-- The plugin now applies the `jbr-toolchain` plugin and uses the runtime specified by the `jbr` configuration to run
-  Ant and MPS.
+- The plugin now applies the `jbr-toolchain` plugin and uses the runtime specified by the `jbr` configuration to run Ant
+  and MPS.
 - `setup` task is no longer a `Sync` but a default (lifecycle) task.
 - `com.specificlanguages.RunAntScript` task replaced with `com.specificlanguages.mps.RunAnt` which uses modern Gradle
   features: lazy properties and `JavaLauncher` for specifying the JVM to use.
@@ -79,8 +79,8 @@ Further changes are listed below.
 
 ### Added
 
-- `mpsDefaults.javaLauncher` to specify the Java executable for MPS in a more modern way and support
-  the `com.specificlanguages.jbr-toolchain` plugin.
+- `mpsDefaults.javaLauncher` to specify the Java executable for MPS in a more modern way and support the
+  `com.specificlanguages.jbr-toolchain` plugin.
 
 ### Deprecated
 
@@ -100,39 +100,44 @@ Further changes are listed below.
 
 ### Added
 
-- Support for MPS 2022.3 and above. Needs a new dependency, `de.itemis.mps.build-backends:launcher`, available from
-  the [itemis Nexus](https://artifacts.itemis.cloud/repository/maven-mps), as well as
-  from [GitHub Packages](https://github.com/mbeddr/mps-build-backends/packages/1947539).
+- Support for MPS 2022.3 and above. Needs a new dependency, `de.itemis.mps.build-backends:launcher`, available from the
+  [itemis Nexus](https://artifacts.itemis.cloud/repository/maven-mps), as well as from
+  [GitHub Packages](https://github.com/mbeddr/mps-build-backends/packages/1947539).
 
 ## 1.6.0
 
 ### Added
+
 - Methods on `StubConfiguration` to create, add, and configure a project dependency.
 
 ### Changed
+
 - Corrected types of `StubConfiguration#dependency()` overloads.
 
 ## 1.5.0
 
 ### Added
+
 - Officially expose and document the `com.specificlanguages.RunAntScript` task.
-- Add `mpsDefaults` extension (`com.specificlanguages.MpsDefaultsExtension`) to make some previously hardcoded settings 
+- Add `mpsDefaults` extension (`com.specificlanguages.MpsDefaultsExtension`) to make some previously hardcoded settings
   configurable.
 
 ### Changed
+
 - The Ant classpath now uses an explicitly named configuration (`ant`) to support customizing it.
 - Hide unintentionally public but undocumented classes and functions.
 
 ### Fixed
-- Task inputs for `generateBuildscript` and `assemble` previously included files under the project build directory. 
+
+- Task inputs for `generateBuildscript` and `assemble` previously included files under the project build directory.
   These files are now correctly excluded.
 
 ## 1.4.0
 
 ### Changed
 
-- Use Gradle artifact transforms for downloading and unzipping the MPS distribution to enable its sharing among 
-  multiple projects.
+- Use Gradle artifact transforms for downloading and unzipping the MPS distribution to enable its sharing among multiple
+  projects.
 
 ## 1.3.0
 
