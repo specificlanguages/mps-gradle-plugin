@@ -3,7 +3,7 @@
 A Gradle plugin to extract MPS and JBR distributions into a directory where they can potentially be shared across
 multiple independent Gradle builds.
 
-# Usage
+## Usage
 
 The plugin is primarily intended to be used by other plugins, not directly by end users.
 
@@ -33,9 +33,9 @@ com.specificlanguages.mps-platform-cache.cacheRoot=~/.mps-platform-cache
 The `mpsPlatformCache` extension provides two methods, `getJbrRoot()` and `getMpsRoot()`. Each method accepts a Gradle
 `Provider<Configuration>` and returns a `Provider<File>` that when evaluated triggers dependency resolution and
 extraction and returns the root directory of the extracted archive. The configuration is expected to contain a single
-dependency and resolve to a single artifact. The difference between MPS and JBR extraction is that JBR extraction
-is performed using native tools on Unix-like systems (Linux and macOS) in order to preserve symlinks and file
-permissions, whereas MPS extraction is done using Java/Gradle means.
+dependency and resolve to a single artifact. The difference between MPS and JBR extraction is that JBR extraction is
+performed using native tools on Unix-like systems (Linux and macOS) in order to preserve symlinks and file permissions,
+whereas MPS extraction is done using Java/Gradle means.
 
 Extraction is atomic and parallel-safe.
 
@@ -45,8 +45,8 @@ There is no mechanism to remove unused distributions from the platform cache, th
 
 ## Folder names
 
-`mps-platform-cache` uses shorter folder names for the common MPS and JBR artifact coordinates and more detailed
-names for non-standard coordinates. For example, `com.jetbrains:mps:2025.1` would be extracted under `mps/2025.1`
-whereas `my.company:custom-rcp:1.0` would be extracted under `mps-custom/my.company/custom-rcp/1.0`.
+`mps-platform-cache` uses shorter folder names for the common MPS and JBR artifact coordinates and more detailed names
+for non-standard coordinates. For example, `com.jetbrains:mps:2025.1` would be extracted under `mps/2025.1` whereas
+`my.company:custom-rcp:1.0` would be extracted under `mps-custom/my.company/custom-rcp/1.0`.
 
 Having said that, the folder naming policy is considered an implementation detail and may change.

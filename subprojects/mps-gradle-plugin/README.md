@@ -3,8 +3,8 @@
 A Gradle plugin to package and publish MPS libraries. Use it if you have developed a library of plugins in MPS and you
 want to make it easy for other developers to use your library in their projects.
 
-This plugin does not cover publishing to the JetBrains Plugins Repository. [I recommend against publishing most plugin
-libraries to the JetBrains Plugins Repository.](https://specificlanguages.com/posts/2022-01/24-two-kinds-of-plugins/)
+This plugin does not cover publishing to the JetBrains Plugins Repository.
+[I recommend against publishing most plugin libraries to the JetBrains Plugins Repository.](https://specificlanguages.com/posts/2022-01/24-two-kinds-of-plugins/)
 
 ## Compatibility
 
@@ -23,20 +23,19 @@ be created by the plugin (`zip` task). It is enough to place the plugins directl
 
 Example:
 
-```
+```text
 default layout:
-module com.mbeddr.mpsutil.common 
+module com.mbeddr.mpsutil.common
 module com.mbeddr.mpsutil.common.build
 ...
 ```
 
 or
 
-```
-...
-default layout:
-plugin com.mbeddr.mpsutil.common [auto packaging]
-  <empty>
+```text
+
+... default layout: plugin com.mbeddr.mpsutil.common [auto packaging] &lt;empty&gt;
+
 ```
 
 ## Applying the plugin
@@ -90,14 +89,14 @@ dependencies {
 }
 ```
 
-The plugin will download the specified MPS distribution and the distribution of the JBR for the current platform.
-The specified JBR and not the Gradle JVM will be used to run all MPS build tasks.
+The plugin will download the specified MPS distribution and the distribution of the JBR for the current platform. The
+specified JBR and not the Gradle JVM will be used to run all MPS build tasks.
 
 ## Specifying external MPS dependencies
 
 The `api` configuration (analogously to the
-[`java-library` Gradle plugin](https://docs.gradle.org/current/userguide/java_library_plugin.html)) specifies
-the dependencies of the project:
+[`java-library` Gradle plugin](https://docs.gradle.org/current/userguide/java_library_plugin.html)) specifies the
+dependencies of the project:
 
 ```kotlin
 dependencies {
@@ -144,8 +143,8 @@ mpsBuilds {
 }
 ```
 
-For each MPS build script that you have in your project, you have to add an entry to the `mpsBuilds` container.
-Main (production) build scripts are represented by an object of class `MainBuild`, test scripts are represented by
+For each MPS build script that you have in your project, you have to add an entry to the `mpsBuilds` container. Main
+(production) build scripts are represented by an object of class `MainBuild`, test scripts are represented by
 `TestBuild` objects.
 
 For each build script (`BuildProject` MPS root), specify:
@@ -223,8 +222,8 @@ Based on the above configuration, the plugin creates the following tasks:
 
 For each entry in `bundledDependencies` the following task is created:
 
-- `resolve<Name>` – resolve the dependencies and put them in the destination directory, stripping version numbers
-  (see [Describing bundled dependencies](#describing-bundled-dependencies)).
+- `resolve<Name>` – resolve the dependencies and put them in the destination directory, stripping version numbers (see
+  [Describing bundled dependencies](#describing-bundled-dependencies)).
 
 For each build script in `mpsBuilds` the following tasks are created:
 
@@ -263,9 +262,9 @@ flowchart RL
 
 ### `RunAnt` task type
 
-The plugin exposes a task type to run Ant scripts, named `com.specificlanguages.mps.RunAnt`. This task can be used
-to run arbitrary targets of arbitrary Ant scripts. When the plugin is applied, all `RunAnt` tasks are pre-configured
-with conventions for running MPS build scripts.
+The plugin exposes a task type to run Ant scripts, named `com.specificlanguages.mps.RunAnt`. This task can be used to
+run arbitrary targets of arbitrary Ant scripts. When the plugin is applied, all `RunAnt` tasks are pre-configured with
+conventions for running MPS build scripts.
 
 As an example, you can create a Gradle task to invoke `myBuild.xml` and call target `myTarget`:
 
@@ -288,9 +287,9 @@ Pre-configured conventions include:
 - `classpath` – set to `mpsDefaults.antClasspath`,
 - `valueProperties` – add `version` with the value of `project.version.toString()` (computed lazily by a provider)
 - `pathProperties`:
-    - add paths for `mps_home`, `mps.home`, `build.jna.library.path` properties, based on `mpsDefaults.mpsHome`,
-    - add properties to place MPS caches and logs underneath the task's temporary directory,
-    - add all properties from `mpsDefaults.pathVariables`
+  - add paths for `mps_home`, `mps.home`, `build.jna.library.path` properties, based on `mpsDefaults.mpsHome`,
+  - add properties to place MPS caches and logs underneath the task's temporary directory,
+  - add all properties from `mpsDefaults.pathVariables`
 
 ## Publishing
 
@@ -342,8 +341,8 @@ The following properties can be customized:
 
 ## Using the mbeddr Gradle plugin
 
-If the [mbeddr Gradle plugin](https://github.com/mbeddr/mps-gradle-plugin) (`de.itemis.mps.gradle.common`) is applied
-to the same project, its tasks are configured to use the same defaults as the tasks of this plugin:
+If the [mbeddr Gradle plugin](https://github.com/mbeddr/mps-gradle-plugin) (`de.itemis.mps.gradle.common`) is applied to
+the same project, its tasks are configured to use the same defaults as the tasks of this plugin:
 
 ```kotlin
 plugins {
@@ -364,8 +363,8 @@ tasks.register<MpsCheck>("checkModels") {
 
 ## MPS and JBR caching
 
-This plugin uses the [mps-platform-cache](../mps-platform-cache/README.md) plugin to cache MPS and JBR distributions.
-By default, MPS and JBR are extracted under the root project's build directory, but you can opt in to share these
+This plugin uses the [mps-platform-cache](../mps-platform-cache/README.md) plugin to cache MPS and JBR distributions. By
+default, MPS and JBR are extracted under the root project's build directory, but you can opt in to share these
 distributions among all projects by setting `com.specificlanguages.mps-platform-cache.cacheRoot` property in your user
 `gradle.properties` file. For more details, see [mps-platform-cache](../mps-platform-cache/README.md).
 
@@ -373,4 +372,4 @@ distributions among all projects by setting `com.specificlanguages.mps-platform-
 
 Projects using the plugin:
 
-* [MPS-extensions](https://github.com/JetBrains/MPS-extensions)
+- [MPS-extensions](https://github.com/JetBrains/MPS-extensions)

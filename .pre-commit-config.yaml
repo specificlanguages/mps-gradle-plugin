@@ -1,5 +1,25 @@
 default_install_hook_types: [pre-commit, commit-msg]
 repos:
+  - repo: local
+    hooks:
+      - id: prettier
+        name: Format Markdown with Prettier
+        entry: prettier --write
+        language: node
+        additional_dependencies:
+          - prettier@3.9.7
+        types:
+          - markdown
+
+      - id: markdownlint-cli2
+        name: Lint Markdown with markdownlint-cli2
+        entry: markdownlint-cli2
+        language: node
+        additional_dependencies:
+          - markdownlint-cli2@0.23.2
+        types:
+          - markdown
+
   - repo: https://github.com/jorisroovers/gitlint
     rev: v0.19.1
     hooks:
