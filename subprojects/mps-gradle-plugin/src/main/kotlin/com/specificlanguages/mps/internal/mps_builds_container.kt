@@ -75,11 +75,11 @@ private fun configureGenerateTask(build: MpsBuild, generateBuildScriptsTask: Any
 private fun configureAssembleTask(build: MainBuild) {
     build.assembleTask.configure {
         group = "build"
-        description = "Runs 'assemble' target of the '${build.name}' build."
+        description = "Runs 'clean' and 'assemble' targets of the '${build.name}' build."
         dependsOn(build.generateTask)
 
         buildFile.set(build.buildFile)
-        targets.set(listOf("assemble"))
+        targets.set(listOf("clean", "assemble"))
 
         pathProperties.put("build.layout", build.buildArtifactsDirectory.asFile)
     }
@@ -88,11 +88,11 @@ private fun configureAssembleTask(build: MainBuild) {
 private fun configureAssembleAndCheckTask(build: TestBuild) {
     build.assembleAndCheckTask.configure {
         group = "build"
-        description = "Runs 'check' target of the '${build.name}' build."
+        description = "Runs 'clean' and 'check' targets of the '${build.name}' build."
         dependsOn(build.generateTask)
 
         buildFile.set(build.buildFile)
-        targets.set(listOf("check"))
+        targets.set(listOf("clean", "check"))
 
         pathProperties.put("build.layout", build.buildArtifactsDirectory.asFile)
     }
