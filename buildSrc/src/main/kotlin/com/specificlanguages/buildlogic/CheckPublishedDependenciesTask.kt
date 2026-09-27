@@ -44,10 +44,6 @@ abstract class CheckPublishedDependenciesTask : DefaultTask() {
         val client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build()
         for (coordinates in dependencyCoordinates.get()) {
             val (group, name, depVersion) = coordinates.split(":", limit = 3)
-            if (depVersion.endsWith("-SNAPSHOT")) {
-                problems.add("dependency '$name' is at snapshot version $depVersion; release it first.")
-                continue
-            }
             val url = "${repositoryUrl.get().trimEnd('/')}/${group.replace('.', '/')}/$name/$depVersion/" +
                 "$name-$depVersion.pom"
             val request = HttpRequest.newBuilder(URI(url))

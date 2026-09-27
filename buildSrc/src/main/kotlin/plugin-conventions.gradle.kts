@@ -1,5 +1,6 @@
 import com.specificlanguages.buildlogic.ApiCompatibilityCheckTask
 import com.specificlanguages.buildlogic.CheckPublishedDependenciesTask
+import com.specificlanguages.buildlogic.CheckSnapshotDependenciesTask
 import com.specificlanguages.buildlogic.PrepareReleaseTask
 import com.specificlanguages.buildlogic.TagReleaseTask
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -65,12 +66,19 @@ val projectDependencyCoordinates = provider {
         .map { "${it.group}:${it.name}:${it.version}" }
 }
 
+val checkSnapshotDependencies = tasks.register<CheckSnapshotDependenciesTask>("checkSnapshotDependencies") {
+    group = "verification"
+    description = "Checks that project dependencies have no snapshot versions."
+    dependencyCoordinates = projectDependencyCoordinates
+}
+
 val checkPublishedDependencies = tasks.register<CheckPublishedDependenciesTask>("checkPublishedDependencies") {
     group = "verification"
     description = "Checks that the published POM will not reference snapshot or unpublished dependencies."
     moduleVersion = moduleVersionProvider
     dependencyCoordinates = projectDependencyCoordinates
     repositoryUrl = "https://plugins.gradle.org/m2"
+    dependsOn(checkSnapshotDependencies)
 }
 
 tasks.named("publishPlugins") {
@@ -86,6 +94,7 @@ tasks.register<PrepareReleaseTask>("prepareRelease") {
     propertiesFile = layout.projectDirectory.file("gradle.properties")
     repositoryRoot = rootProject.layout.projectDirectory
     dependsOn(":checkReleaseVersions")
+    dependsOn(checkSnapshotDependencies)
 }
 
 tasks.register<TagReleaseTask>("tagRelease") {
