@@ -10,7 +10,6 @@ repositories {
 configurations.testImplementation.configure { extendsFrom(configurations.compileOnly.get()) }
 
 dependencies {
-    implementation(kotlin("stdlib-jdk8"))
     implementation(project(":mps-platform-cache"))
     implementation(project(":jbr-toolchain"))
     implementation(libs.mps.launcher)
