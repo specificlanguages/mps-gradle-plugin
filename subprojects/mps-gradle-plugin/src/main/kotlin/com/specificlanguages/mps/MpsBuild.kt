@@ -57,7 +57,7 @@ abstract class MpsBuild(
 abstract class MainBuild @Inject constructor(
     generateTask: TaskProvider<out RunAnt>,
     /**
-     * The task that forks Ant to run the `assemble` target of [buildFile].
+     * The task that forks Ant to run the `clean` and `assemble` targets of [buildFile], in that order.
      */
     val assembleTask: TaskProvider<out RunAnt>
 ) : MpsBuild(generateTask) {
@@ -77,8 +77,8 @@ abstract class MainBuild @Inject constructor(
 abstract class TestBuild @Inject constructor(
     generateTask: TaskProvider<out RunAnt>,
     /**
-     * The task that forks Ant to run the `check` target of [buildFile]. In MPS-generated Ant files `check` depends on
-     * `assemble` and it is not possible to run `check` alone.
+     * The task that forks Ant to run the `clean` and `check` targets of [buildFile], in that order.
+     * In MPS-generated Ant files `check` depends on `assemble` and it is not possible to run `check` alone.
      */
     val assembleAndCheckTask: TaskProvider<out RunAnt>
 ) : MpsBuild(generateTask)
