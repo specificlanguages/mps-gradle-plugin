@@ -5,7 +5,7 @@ import org.gradle.api.artifacts.ProjectDependency
 evaluationDependsOnChildren()
 
 val moduleInfos = subprojects.map { subproject ->
-    val dependencies = listOf("api", "implementation")
+    val dependencies = listOf("api", "implementation", "runtimeOnly")
         .mapNotNull { subproject.configurations.findByName(it) }
         .flatMap { it.dependencies.withType<ProjectDependency>().map(ProjectDependency::getName) }
         .toSet()
@@ -17,12 +17,12 @@ val moduleInfos = subprojects.map { subproject ->
     )
 }
 
-// Fails a release if a changed module's dependents have not also been bumped. Runs the per-module API
+// Fails a release if a changed module or its dependents have not been bumped. Runs the per-module API
 // compatibility checks too, so this single task covers version-policy validation. Not wired into `check`:
 // it needs full git history and is meant for release preparation and CI.
 tasks.register<CheckReleaseVersionsTask>("checkReleaseVersions") {
     group = "verification"
-    description = "Checks that modules depending on a changed module are bumped, and that API changes are versioned."
+    description = "Checks that changed modules and their dependents are bumped, and that API changes are versioned."
     modules = moduleInfos
     repositoryRoot = layout.projectDirectory
     dependsOn(subprojects.map { "${it.path}:checkApiCompatibility" })

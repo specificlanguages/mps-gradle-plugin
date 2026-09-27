@@ -19,9 +19,8 @@ data class ModuleInfo(
 ) : java.io.Serializable
 
 /**
- * Fails if a released module changed since its last release without every module that (transitively) depends
- * on it being bumped as well. Dependents must carry a fix in the changed dependency in a new release of their
- * own, so each is required to have at least a patch bump over its last released version.
+ * Requires at least a patch bump for a changed module and all its transitive dependents.
+ * Tests, Markdown documentation, and build scripts are excluded; dependencies are compared through runtime locks.
  */
 abstract class CheckReleaseVersionsTask @Inject constructor(
     private val execOperations: ExecOperations
@@ -35,22 +34,23 @@ abstract class CheckReleaseVersionsTask @Inject constructor(
 
     @TaskAction
     fun check() {
-        val root = repositoryRoot.get().asFile
+        val git = Git(execOperations, repositoryRoot.get().asFile)
         val modules = modules.get()
         val byName = modules.associateBy { it.name }
 
-        val lastReleased = modules.associate { it.name to latestReleaseVersion(execOperations, root, it.name) }
-        val changed = modules.filter { hasChangedSinceRelease(root, it, lastReleased.getValue(it.name)) }.map { it.name }
+        val lastReleased = modules.associate { it.name to git.latestReleaseVersion(it.name) }
+        val changed = modules.filter { hasChangedSinceRelease(git, it, lastReleased.getValue(it.name)) }.map { it.name }
 
         val violations = mutableListOf<String>()
         for (changedModule in changed) {
-            for (dependent in transitiveDependents(changedModule, byName)) {
+            for (dependent in dependentsClosure(changedModule, byName)) {
                 val info = byName.getValue(dependent)
                 val baseline = lastReleased.getValue(dependent) ?: continue
                 val target = info.version.removeSuffix("-SNAPSHOT")
                 if (bumpLevel(baseline, target) == ChangeLevel.NONE) {
+                    val role = if (dependent == changedModule) "module" else "dependent"
                     violations.add(
-                        "'$changedModule' changed since its release; dependent '$dependent' must be bumped at " +
+                        "'$changedModule' changed since its release; $role '$dependent' must be bumped at " +
                             "least a patch over $baseline (currently $target).")
                 }
             }
@@ -62,17 +62,35 @@ abstract class CheckReleaseVersionsTask @Inject constructor(
         }
     }
 
-    private fun hasChangedSinceRelease(root: java.io.File, module: ModuleInfo, lastReleased: String?): Boolean {
+    private fun hasChangedSinceRelease(git: Git, module: ModuleInfo, lastReleased: String?): Boolean {
         // A module that has never been released is treated as changed: it must be released to carry any fix.
         if (lastReleased == null) return true
-        val diff = git(execOperations, root, "diff", "--quiet", "${module.name}-$lastReleased", "HEAD", "--",
-            module.path, ignoreExitValue = true)
-        return diff.exitCode != 0
+        val baseline = "${module.name}-$lastReleased"
+        val changedPaths = git.changedPaths(baseline, "HEAD", module.path)
+            .map { it.removePrefix("${module.path}/") }
+        if (changedPaths.any { !isExcludedPath(it) }) return true
+        return "gradle.lockfile" in changedPaths &&
+            runtimeDependencies(git, baseline, module) != runtimeDependencies(git, "HEAD", module)
     }
 
-    private fun transitiveDependents(module: String, byName: Map<String, ModuleInfo>): Set<String> {
+    private fun isExcludedPath(path: String): Boolean =
+        path == "gradle.lockfile" || path == "build.gradle.kts" || path == "build.gradle" || path.endsWith(".md") ||
+            path.startsWith("src/test/") || path.startsWith("etc/test-projects/")
+
+    private fun runtimeDependencies(git: Git, revision: String, module: ModuleInfo): Set<String> {
+        val path = "${module.path}/gradle.lockfile"
+        val lockfile = git.readFileAtRevision(revision, path) ?: return emptySet()
+        return lockfile.lineSequence()
+            .filter { !it.startsWith("#") && '=' in it }
+            .filter { "runtimeClasspath" in it.substringAfter('=').split(',') }
+            .map { it.substringBefore('=') }
+            .filter { it != "empty" }
+            .toSet()
+    }
+
+    private fun dependentsClosure(module: String, byName: Map<String, ModuleInfo>): Set<String> {
         val dependents = mutableSetOf<String>()
-        val queue = ArrayDeque(byName.values.filter { module in it.dependencies }.map { it.name })
+        val queue = ArrayDeque(listOf(module))
         while (queue.isNotEmpty()) {
             val next = queue.removeFirst()
             if (dependents.add(next)) {

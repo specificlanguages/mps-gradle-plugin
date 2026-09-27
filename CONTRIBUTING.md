@@ -28,8 +28,12 @@ Each module under `subprojects/` is versioned independently in its own `gradle.p
 - `./gradlew checkApiCompatibility` fails a module whose public API changed more than its version bump allows (a removed
   or changed declaration needs a major bump, a new one a minor bump), comparing the binary-compatibility-validator
   `.api` dump against the module's last release.
-- `./gradlew checkReleaseVersions` additionally fails if a changed module's dependents have not been bumped, so a fix in
-  a module is always propagated into a new release of everything that depends on it.
+- `./gradlew checkReleaseVersions` additionally requires at least a patch bump for each changed module and every module
+  that transitively depends on it through `api`, `implementation`, or `runtimeOnly` dependencies. It compares committed
+  files against each module's last release tag. Test sources (`src/test/`), test fixtures (`etc/test-projects/`),
+  Markdown documentation, and module build scripts are excluded. Lockfiles are compared using only their
+  `runtimeClasspath` entries, so test and `compileOnly` dependency changes do not require bumps. Other build-script-only
+  changes require a manually chosen version bump when appropriate.
 
 When you change a module, bump its version accordingly and bump every module that depends on it by at least a patch.
 Make the bump with the first change after a release, in the same pull request, and give it a `-SNAPSHOT` suffix (e.g.
@@ -38,6 +42,19 @@ Make the bump with the first change after a release, in the same pull request, a
 dependent's published POM. Raise the bump later in the cycle if a further change requires it. The suffix is removed by
 `prepareRelease` at release time and is never edited by hand; after a release the version rests at the released value
 until the next change.
+
+## Dependency locking
+
+Each module has a `gradle.lockfile` recording resolved dependencies for all configurations. After changing dependencies,
+regenerate the locks and commit them alongside the dependency declarations:
+
+```shell
+./gradlew :artifact-transforms:dependencies :jbr-toolchain:dependencies :mps-gradle-plugin:dependencies :mps-platform-cache:dependencies --write-locks
+```
+
+Runtime lock changes require version bumps for the affected modules and their transitive dependents, including changes
+to transitive external dependencies. Test and compile-only entries remain locked for reproducibility but do not trigger
+the release guard. Renovate updates Gradle lockfiles as part of dependency updates.
 
 ## Releasing
 

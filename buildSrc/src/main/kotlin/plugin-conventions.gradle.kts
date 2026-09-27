@@ -35,6 +35,10 @@ gradlePlugin {
 
 group = "com.specificlanguages"
 
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 repositories {
     mavenCentral()
 }

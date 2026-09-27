@@ -9,7 +9,15 @@ repositories {
     gradlePluginPortal()
 }
 
+tasks.test {
+    useJUnitPlatform()
+}
+
 dependencies {
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
+
     fun plugin(id: String, version: String) = "$id:$id.gradle.plugin:$version"
 
     implementation(plugin("com.gradle.plugin-publish", "2.0.0"))

@@ -43,10 +43,10 @@ abstract class PrepareReleaseTask @Inject constructor(
     fun prepare() {
         val module = moduleName.get()
         val version = currentVersion.get().removeSuffix("-SNAPSHOT")
-        val root = repositoryRoot.get().asFile
+        val git = Git(execOperations, repositoryRoot.get().asFile)
         val tag = "$module-$version"
 
-        if (git(execOperations, root, "tag", "--list", tag).output.isNotBlank()) {
+        if (git.tagExists(tag)) {
             throw GradleException("Tag '$tag' already exists; bump the version in gradle.properties first.")
         }
 
@@ -61,10 +61,7 @@ abstract class PrepareReleaseTask @Inject constructor(
             return
         }
 
-        val paths = changedFiles
-            .map { root.toPath().relativize(it.toPath()).toString().replace('\\', '/') }
-            .toTypedArray()
-        git(execOperations, root, "commit", "-m", "chore($module): release $version", "--", *paths)
+        git.commitFiles(changedFiles, "chore($module): release $version")
 
         logger.lifecycle(
             "Prepared release $version of '$module'. Open a pull request with this commit; " +

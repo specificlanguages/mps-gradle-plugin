@@ -40,8 +40,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: j178/prek-action@v3.0.0
 
-  # Fails if a public API change is not matched by a version bump, or if a changed module's dependents are not
-  # bumped. Needs full history and release tags.
+  # Fails if a public API change is not matched by a version bump, or if a changed module or its dependents
+  # are not bumped. Needs full history and release tags.
   version-policy:
     name: Release version policy
     runs-on: ubuntu-latest
@@ -56,4 +56,4 @@ jobs:
           distribution: jetbrains
           java-version: 17
       - name: Check release versions
-        run: ./gradlew checkReleaseVersions
+        run: ./gradlew :buildSrc:test checkReleaseVersions

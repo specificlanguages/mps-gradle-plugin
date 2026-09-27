@@ -42,16 +42,15 @@ abstract class ApiCompatibilityCheckTask @Inject constructor(
     @TaskAction
     fun check() {
         val module = moduleName.get()
-        val root = repositoryRoot.get().asFile
+        val git = Git(execOperations, repositoryRoot.get().asFile)
 
-        val baselineVersion = latestReleaseVersion(execOperations, root, module)
+        val baselineVersion = git.latestReleaseVersion(module)
         if (baselineVersion == null) {
             logger.lifecycle("No released baseline for '$module'; skipping API compatibility check.")
             return
         }
 
-        val baselineApi = git(execOperations, root, "show", "$module-$baselineVersion:${apiFilePath.get()}",
-            ignoreExitValue = true).output
+        val baselineApi = git.readFileAtRevision("$module-$baselineVersion", apiFilePath.get()).orEmpty()
         val currentApi = currentApiFile.files.singleOrNull()?.takeIf { it.exists() }?.readText().orEmpty()
 
         val required = requiredLevelFromApiDiff(baselineApi, currentApi)

@@ -36,17 +36,17 @@ abstract class TagReleaseTask @Inject constructor(
     fun tag() {
         val module = moduleName.get()
         val version = currentVersion.get()
-        val root = repositoryRoot.get().asFile
+        val git = Git(execOperations, repositoryRoot.get().asFile)
         val tag = "$module-$version"
 
         if (version.endsWith("-SNAPSHOT")) {
             throw GradleException(
                 "'$module' is at snapshot version $version; run prepareRelease and merge its commit first.")
         }
-        if (git(execOperations, root, "tag", "--list", tag).output.isNotBlank()) {
+        if (git.tagExists(tag)) {
             throw GradleException("Tag '$tag' already exists; bump the version in gradle.properties first.")
         }
-        val branch = git(execOperations, root, "rev-parse", "--abbrev-ref", "HEAD").output.trim()
+        val branch = git.currentBranch()
         if (branch != "master") {
             throw GradleException(
                 "Release tags must be created on 'master' (currently on '$branch') so that they point at the " +
@@ -58,9 +58,7 @@ abstract class TagReleaseTask @Inject constructor(
                 "$changelog has no '$version' section; run prepareRelease and merge its commit first.")
         }
 
-        // The message makes the tag annotated, which also satisfies a `tag.gpgsign` git configuration
-        // (signing requires a message).
-        git(execOperations, root, "tag", "-m", "$module $version", tag)
+        git.createAnnotatedTag(tag, "$module $version")
 
         logger.lifecycle("Created tag $tag. Publish the release by pushing it: git push origin $tag")
     }
