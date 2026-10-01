@@ -21,7 +21,7 @@ abstract class MpsPlatformCache @Inject constructor(
     private val fileSystemOperations: FileSystemOperations,
     private val archiveOperations: ArchiveOperations,
     private val layout: ProjectLayout,
-    providers: ProviderFactory,
+    private val providers: ProviderFactory,
     objects: ObjectFactory,
 ) {
     val cacheRoot: DirectoryProperty = objects.directoryProperty().convention(
@@ -60,9 +60,9 @@ abstract class MpsPlatformCache @Inject constructor(
         return fullPath
     }
 
-    fun getJbrRoot(configuration: Provider<out Configuration>): Provider<File> = configuration.map(::getJbrRoot)
+    fun getJbrRoot(configuration: Provider<out Configuration>): Provider<File> = configuration.flatMap(::getJbrRoot)
 
-    private fun getJbrRoot(configuration: Configuration): File {
+    private fun getJbrRoot(configuration: Configuration): Provider<File> {
         // The configuration must resolve to exactly one JBR archive. The declared dependency may be a marker (e.g.
         // com.jetbrains.mps:mps-jbr) that in turn depends on the actual JBR, so the cache location is derived from the
         // resolved distribution artifact rather than the declared dependency.
@@ -71,9 +71,16 @@ abstract class MpsPlatformCache @Inject constructor(
         val subPath = getJbrFolderPath(getModuleComponentId(artifact, configuration), artifact.classifier)
         val fullPath = cacheRoot.get().asFile.resolve(subPath)
 
-        ensureExtracted(artifact.file.toPath(), fullPath.toPath(), ::untgzNativelyTo)
+        if (Os.isFamily(Os.FAMILY_UNIX)) {
+            return providers.of(NativeJbrExtraction::class.java) {
+                parameters.archive.set(artifact.file)
+                parameters.directory.set(fullPath)
+            }
+        }
 
-        return fullPath
+        ensureExtracted(artifact.file.toPath(), fullPath.toPath(), ::untgzTo)
+
+        return providers.provider { fullPath }
     }
 
     private fun getMpsFolderPath(id: ModuleComponentIdentifier): String {
@@ -100,38 +107,30 @@ abstract class MpsPlatformCache @Inject constructor(
 
     private fun ensureExtracted(archive: Path, directory: Path, extract: (Path, Path) -> Unit) {
         try {
-            DistributionExtraction(fileSystemOperations).ensureExtracted(archive, directory, extract)
+            DistributionExtraction().ensureExtracted(archive, directory, extract)
         } catch (e: ExtractionLockTimeoutException) {
             throw GradleException(e.message, e)
         }
     }
 
-    private fun untgzNativelyTo(inputFile: Path, outputDir: Path, componentsToStrip: Int = 1) {
-        if (Os.isFamily(Os.FAMILY_UNIX)) {
-            // Use Unix utilities to properly deal with symlinks
-            execOperations.exec {
-                commandLine("tar", "--strip-components=$componentsToStrip", "-xzf", inputFile.toAbsolutePath().toString())
-                workingDir = outputDir.toFile()
-            }
-        } else {
-            // On Windows we don't worry about symlinks
-            // Distribution extraction supplies a fresh, empty directory.
-            fileSystemOperations.copy {
-                from(archiveOperations.tarTree(inputFile.toFile()))
-                into(outputDir.toFile())
-                includeEmptyDirs = false
+    private fun untgzTo(inputFile: Path, outputDir: Path, componentsToStrip: Int = 1) {
+        // On Windows we don't worry about symlinks
+        // Distribution extraction supplies a fresh, empty directory.
+        fileSystemOperations.copy {
+            from(archiveOperations.tarTree(inputFile.toFile()))
+            into(outputDir.toFile())
+            includeEmptyDirs = false
 
-                if (componentsToStrip > 0) {
-                    eachFile {
-                        // Strip the components
-                        relativePath = RelativePath(
-                            relativeSourcePath.isFile,
-                            *relativeSourcePath.segments.drop(componentsToStrip).toTypedArray()
-                        )
-                    }
+            if (componentsToStrip > 0) {
+                eachFile {
+                    // Strip the components
+                    relativePath = RelativePath(
+                        relativeSourcePath.isFile,
+                        *relativeSourcePath.segments.drop(componentsToStrip).toTypedArray()
+                    )
                 }
-                includeEmptyDirs = false
             }
+            includeEmptyDirs = false
         }
     }
 

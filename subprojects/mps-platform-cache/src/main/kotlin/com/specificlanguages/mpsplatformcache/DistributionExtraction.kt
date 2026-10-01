@@ -1,12 +1,14 @@
 package com.specificlanguages.mpsplatformcache
 
-import org.gradle.api.file.FileSystemOperations
 import java.io.IOException
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 import java.nio.channels.OverlappingFileLockException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
+import java.nio.file.FileVisitResult
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.CREATE
@@ -17,7 +19,6 @@ import java.util.concurrent.TimeUnit
 internal class ExtractionLockTimeoutException(override val message: String) : IOException(message)
 
 internal class DistributionExtraction(
-    private val fileSystemOperations: FileSystemOperations,
     private val lockTimeout: Duration = Duration.ofMinutes(10),
 ) {
     /**
@@ -36,7 +37,7 @@ internal class DistributionExtraction(
             lockWithRetry(channel, directory).use {
                 if (Files.exists(completion)) return
                 if (Files.exists(directory, NOFOLLOW_LINKS)) {
-                    fileSystemOperations.delete { delete(directory.toFile()) }
+                    deleteDistributionDirectory(directory)
                 }
                 Files.createDirectories(directory)
                 extract(archive, directory)
@@ -71,4 +72,32 @@ internal class DistributionExtraction(
             TimeUnit.MILLISECONDS.sleep(100)
         }
     }
+}
+
+/**
+ * Deletes incomplete extraction output without following symbolic links.
+ * Native JBR extraction runs inside a Gradle ValueSource, where FileSystemOperations is not available for
+ * injection. NIO deletion lets both ValueSource and plugin callers use the same extraction implementation.
+ */
+private fun deleteDistributionDirectory(directory: Path) {
+    Files.walkFileTree(directory, object : SimpleFileVisitor<Path>() {
+        override fun preVisitDirectory(dir: Path, attrs: BasicFileAttributes): FileVisitResult {
+            // Directory write permission is needed to remove its entries on Unix.
+            dir.toFile().setWritable(true)
+            return FileVisitResult.CONTINUE
+        }
+
+        override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
+            // Windows requires read-only files to be made writable before deletion.
+            if (attrs.isRegularFile) file.toFile().setWritable(true)
+            Files.delete(file)
+            return FileVisitResult.CONTINUE
+        }
+
+        override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
+            if (exc != null) throw exc
+            Files.delete(dir)
+            return FileVisitResult.CONTINUE
+        }
+    })
 }

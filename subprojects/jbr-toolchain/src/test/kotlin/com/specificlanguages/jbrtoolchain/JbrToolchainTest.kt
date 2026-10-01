@@ -18,7 +18,7 @@ class JbrToolchainTest {
     }
 
     @Test
-    fun canRunJava(@TempDir testProjectDir: File) {
+    fun `java launcher stores and reuses configuration cache`(@TempDir testProjectDir: File) {
         testProjectDir.resolve("build.gradle.kts").writeText(
             """
             plugins {
@@ -31,6 +31,8 @@ class JbrToolchainTest {
             
             repositories.maven("https://artifacts.itemis.cloud/repository/maven-mps")
 
+            mpsPlatformCache.cacheRoot.set(layout.projectDirectory.dir("cache"))
+
             val javaVersion by tasks.registering(JavaExec::class) {
                 javaLauncher = jbrToolchain.javaLauncher
                 jvmArgs("-version")
@@ -40,16 +42,23 @@ class JbrToolchainTest {
         )
 
         val task = ":javaVersion"
-        val result = GradleRunner.create()
+        val runner = GradleRunner.create()
             .withProjectDir(testProjectDir)
-            .withArguments(task)
+            .withArguments(task, "--configuration-cache", "--configuration-cache-problems=fail")
             .withPluginClasspath()
-            .build()
+
+        val result = runner.build()
 
         assertEquals(TaskOutcome.SUCCESS, result.task(task)?.outcome)
         assertTrue(result.output.contains(JBR_BUILD)) {
             "output should contain JBR version $JBR_BUILD but was: ${result.output}"
         }
+        assertTrue(result.output.contains("Configuration cache entry stored."), result.output)
+
+        val reused = runner.build()
+        assertEquals(TaskOutcome.SUCCESS, reused.task(task)?.outcome)
+        assertTrue(reused.output.contains("Reusing configuration cache."), reused.output)
+        assertTrue(reused.output.contains(JBR_BUILD), reused.output)
     }
     @Test
     fun errorMessageWhenEmpty() {

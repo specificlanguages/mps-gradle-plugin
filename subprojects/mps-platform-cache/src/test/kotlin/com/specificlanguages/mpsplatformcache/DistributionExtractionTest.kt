@@ -1,8 +1,5 @@
 package com.specificlanguages.mpsplatformcache
 
-import org.gradle.api.file.FileSystemOperations
-import org.gradle.testfixtures.ProjectBuilder
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -19,26 +16,38 @@ import java.time.Duration
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.FutureTask
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
 import kotlin.concurrent.thread
 
 @Timeout(20)
 class DistributionExtractionTest {
-    private lateinit var fileSystemOperations: FileSystemOperations
-
-    @BeforeEach
-    fun setUp(@TempDir projectDir: File) {
-        val project = ProjectBuilder.builder().withProjectDir(projectDir).build()
-        fileSystemOperations = project.objects.newInstance(FileSystemServices::class.java).fileSystemOperations
-    }
-
-    abstract class FileSystemServices {
-        @get:Inject
-        abstract val fileSystemOperations: FileSystemOperations
-    }
-
     private fun newExtraction(lockTimeout: Duration = Duration.ofMinutes(10)) =
-        DistributionExtraction(fileSystemOperations, lockTimeout)
+        DistributionExtraction(lockTimeout)
+
+    @Test
+    fun `extraction replaces read-only output without following symlinks`(@TempDir root: Path) {
+        assumeTrue(org.apache.tools.ant.taskdefs.condition.Os.isFamily(org.apache.tools.ant.taskdefs.condition.Os.FAMILY_UNIX))
+        val outside = Files.createDirectory(root.resolve("outside"))
+        Files.writeString(outside.resolve("keep"), "untouched")
+        val directory = Files.createDirectory(root.resolve("distribution"))
+        val nested = Files.createDirectory(directory.resolve("nested"))
+        val partial = Files.writeString(nested.resolve("partial"), "incomplete")
+        Files.createSymbolicLink(directory.resolve("linked-directory"), outside)
+        Files.createSymbolicLink(directory.resolve("dangling"), root.resolve("missing"))
+        assertTrue(partial.toFile().setWritable(false))
+        assertTrue(nested.toFile().setWritable(false))
+        try {
+            newExtraction().ensureExtracted(root.resolve("archive"), directory) { _, destination ->
+                Files.list(destination).use { assertEquals(0, it.count()) }
+                Files.writeString(destination.resolve("content"), "complete")
+            }
+            assertEquals("untouched", Files.readString(outside.resolve("keep")))
+            assertEquals("complete", Files.readString(directory.resolve("content")))
+            assertTrue(Files.exists(directory.resolve(".complete")))
+        } finally {
+            if (Files.exists(nested)) nested.toFile().setWritable(true)
+            if (Files.exists(partial)) partial.toFile().setWritable(true)
+        }
+    }
 
     @Test
     fun `incomplete extraction containing read-only files is replaced`(@TempDir root: Path) {
