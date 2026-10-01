@@ -1,20 +1,26 @@
 package com.specificlanguages.mpsplatformcache
 
 import org.apache.tools.ant.taskdefs.Tar
-import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
 class ConfigurationCacheTest {
     @Test
-    fun `native JBR extraction stores and reuses configuration cache`(@TempDir projectDir: File) {
-        assumeTrue(Os.isFamily(Os.FAMILY_UNIX), "Native tar extraction is used on Unix")
+    fun `JBR extraction stores and reuses configuration cache`(@TempDir projectDir: File) {
+        checkConfigurationCache(projectDir, useWindowsExtractor = false)
+    }
+
+    @Test
+    fun `Windows extractor stores and reuses configuration cache`(@TempDir projectDir: File) {
+        checkConfigurationCache(projectDir, useWindowsExtractor = true)
+    }
+
+    private fun checkConfigurationCache(projectDir: File, useWindowsExtractor: Boolean) {
 
         val content = projectDir.resolve("fixture/jbr/content.txt")
         content.parentFile.mkdirs()
@@ -41,24 +47,34 @@ class ConfigurationCacheTest {
         }
 
         projectDir.resolve("settings.gradle.kts").writeText("rootProject.name = \"configuration-cache-test\"")
-        projectDir.resolve("build.gradle.kts").writeText(
+        val rootProvider = if (useWindowsExtractor) {
+            """
+            providers.of(com.specificlanguages.mpsplatformcache.WindowsJbrExtraction) {
+                parameters.archive.set(layout.projectDirectory.file("repo/com/example/jbr/1.0/jbr-1.0.tgz"))
+                parameters.directory.set(layout.projectDirectory.dir("cache/jbr-custom/com.example/jbr/1.0"))
+            }
+            """.trimIndent()
+        } else {
+            "mpsPlatformCache.getJbrRoot(configurations.named('jbr'))"
+        }
+        projectDir.resolve("build.gradle").writeText(
             """
             plugins {
-                id("com.specificlanguages.mps-platform-cache")
+                id 'com.specificlanguages.mps-platform-cache'
             }
 
-            repositories.maven("repo")
-            val jbr = configurations.register("jbr")
+            repositories.maven { url = uri('repo') }
+            configurations { jbr }
             dependencies {
-                add("jbr", "com.example:jbr:1.0@tgz")
+                jbr 'com.example:jbr:1.0@tgz'
             }
 
-            mpsPlatformCache.cacheRoot.set(layout.projectDirectory.dir("cache"))
-            val jbrRoot = mpsPlatformCache.getJbrRoot(jbr).get()
+            mpsPlatformCache.cacheRoot.set(layout.projectDirectory.dir('cache'))
+            def jbrRoot = ($rootProvider).get()
 
-            tasks.register<Sync>("copyJbr") {
+            tasks.register('copyJbr', Sync) {
                 from(jbrRoot)
-                into(layout.buildDirectory.dir("copied-jbr"))
+                into(layout.buildDirectory.dir('copied-jbr'))
             }
             """.trimIndent()
         )

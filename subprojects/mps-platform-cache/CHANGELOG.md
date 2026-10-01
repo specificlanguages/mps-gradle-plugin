@@ -9,8 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
-- Native JBR extraction supports Gradle configuration-cache storage and reuse, and restores missing extracted
-  distributions when reusing the configuration cache.
+- JBR extraction supports Gradle configuration-cache storage and reuse on Unix and Windows, and restores missing
+  extracted distributions when reusing the configuration cache.
 
 ## 1.0.3
 

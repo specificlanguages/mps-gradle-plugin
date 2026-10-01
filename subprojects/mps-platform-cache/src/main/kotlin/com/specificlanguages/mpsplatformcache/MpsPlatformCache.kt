@@ -71,16 +71,11 @@ abstract class MpsPlatformCache @Inject constructor(
         val subPath = getJbrFolderPath(getModuleComponentId(artifact, configuration), artifact.classifier)
         val fullPath = cacheRoot.get().asFile.resolve(subPath)
 
-        if (Os.isFamily(Os.FAMILY_UNIX)) {
-            return providers.of(NativeJbrExtraction::class.java) {
-                parameters.archive.set(artifact.file)
-                parameters.directory.set(fullPath)
-            }
+        val extractionType = if (Os.isFamily(Os.FAMILY_UNIX)) NativeJbrExtraction::class.java else WindowsJbrExtraction::class.java
+        return providers.of(extractionType) {
+            parameters.archive.set(artifact.file)
+            parameters.directory.set(fullPath)
         }
-
-        ensureExtracted(artifact.file.toPath(), fullPath.toPath(), ::untgzTo)
-
-        return providers.provider { fullPath }
     }
 
     private fun getMpsFolderPath(id: ModuleComponentIdentifier): String {
@@ -110,27 +105,6 @@ abstract class MpsPlatformCache @Inject constructor(
             DistributionExtraction().ensureExtracted(archive, directory, extract)
         } catch (e: ExtractionLockTimeoutException) {
             throw GradleException(e.message, e)
-        }
-    }
-
-    private fun untgzTo(inputFile: Path, outputDir: Path, componentsToStrip: Int = 1) {
-        // On Windows we don't worry about symlinks
-        // Distribution extraction supplies a fresh, empty directory.
-        fileSystemOperations.copy {
-            from(archiveOperations.tarTree(inputFile.toFile()))
-            into(outputDir.toFile())
-            includeEmptyDirs = false
-
-            if (componentsToStrip > 0) {
-                eachFile {
-                    // Strip the components
-                    relativePath = RelativePath(
-                        relativeSourcePath.isFile,
-                        *relativeSourcePath.segments.drop(componentsToStrip).toTypedArray()
-                    )
-                }
-            }
-            includeEmptyDirs = false
         }
     }
 

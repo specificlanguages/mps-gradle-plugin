@@ -76,7 +76,7 @@ internal class DistributionExtraction(
 
 /**
  * Deletes incomplete extraction output without following symbolic links.
- * Native JBR extraction runs inside a Gradle ValueSource, where FileSystemOperations is not available for
+ * JBR extraction runs inside a Gradle ValueSource, where FileSystemOperations is not available for
  * injection. NIO deletion lets both ValueSource and plugin callers use the same extraction implementation.
  */
 private fun deleteDistributionDirectory(directory: Path) {
