@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14'
+          python-version: '3.15'
       - run: pip install -r requirements.txt
       - name: Lint commit messages
         # Locally, .gitlint ignores WIP titles and fixup!/squash! commits so contributors can use them as
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: j178/prek-action@v3.0.0
+      - uses: j178/prek-action@v3.0.1
 
   # Fails if a public API change is not matched by a version bump, or if a changed module or its dependents
   # are not bumped. Needs full history and release tags.
