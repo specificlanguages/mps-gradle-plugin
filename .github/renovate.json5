@@ -10,6 +10,12 @@
     '**/etc/test-projects/**',
   ],
 
+  // Commits pushed by the renovate-locks workflow must not make Renovate treat its branches as
+  // edited by someone else and stop updating them.
+  gitIgnoredAuthors: [
+    '41898282+github-actions[bot]@users.noreply.github.com',
+  ],
+
   // Enabled and grouped below so the gitlint hook rev is kept current alongside the other CI
   // tooling, instead of going stale silently.
   'pre-commit': {
@@ -23,6 +29,9 @@
       matchManagers: ['gradle', 'gradle-wrapper'],
       groupName: 'Gradle dependencies',
       separateMajorMinor: false,
+      // Renovate's Gradle run fails on Maven Central rate limits. The renovate-locks workflow
+      // regenerates the lockfiles and the wrapper instead.
+      skipArtifactsUpdate: true,
     },
     // One PR for GitHub Actions, pre-commit hook, and Python tooling updates. gitlint's version is
     // pinned both as a pre-commit hook rev and in requirements.txt (used to run the same gitlint
