@@ -93,9 +93,27 @@ tasks.register<PrepareReleaseTask>("prepareRelease") {
     changelogFile = layout.projectDirectory.file("CHANGELOG.md")
     propertiesFile = layout.projectDirectory.file("gradle.properties")
     repositoryRoot = rootProject.layout.projectDirectory
+    modulePath = relativeToRoot(projectDir)
+    directDependencies = provider {
+        declaredDependencyConfigurations()
+            .flatMap { it.dependencies.withType<ExternalModuleDependency>() }
+            .mapNotNull { dependency -> dependency.group?.let { "$it:${dependency.name}" } }
+            .toSet()
+    }
+    projectDependencyPaths = provider {
+        declaredDependencyConfigurations()
+            .flatMap { it.dependencies.withType<ProjectDependency>() }
+            .associate { it.name to relativeToRoot(project(it.path).projectDir) }
+    }
     dependsOn(":checkReleaseVersions")
     dependsOn(checkSnapshotDependencies)
 }
+
+fun declaredDependencyConfigurations() =
+    listOf("api", "implementation", "runtimeOnly").mapNotNull { configurations.findByName(it) }
+
+fun relativeToRoot(dir: File) =
+    rootDir.toPath().relativize(dir.toPath()).toString().replace('\\', '/')
 
 tasks.register<TagReleaseTask>("tagRelease") {
     group = "publishing"

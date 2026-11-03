@@ -72,11 +72,16 @@ Each module is released individually, in two steps, because `master` is protecte
 
    The task runs `checkReleaseVersions` and `checkSnapshotDependencies`, drops the `-SNAPSHOT` suffix from the version
    in the module's `gradle.properties`, renames the `Unreleased` section of its changelog to the release version and
-   commits both files. Open a pull request with the commit and merge it. Release commits for several modules can share
-   one pull request. If the module's files are already in their release state, the task says so and this step needs no
-   pull request. `checkSnapshotDependencies` rejects snapshot project dependencies but permits the module's own snapshot
-   version. Prepare dependencies before their dependents, using separate Gradle invocations so each invocation reads the
-   updated versions. Dependencies do not need to be published at this stage.
+   commits both files. Before the rename, it lists dependency changes since the module's last release under
+   `### Dependency updates`: new versions of the module's `api`, `implementation` and `runtimeOnly` dependencies
+   (project and external), and minor or major Gradle updates. A bullet that already names the dependency gets the new
+   version and keeps the rest of its text, so you can add an explanation by hand. If the changelog has no `Unreleased`
+   section, dependency changes alone create one. Open a pull request with the commit, check the changelog in it, and
+   merge it. Release commits for several modules can share one pull request. If the module's files are already in their
+   release state, the task says so and this step needs no pull request. `checkSnapshotDependencies` rejects snapshot
+   project dependencies but permits the module's own snapshot version. Prepare dependencies before their dependents,
+   using separate Gradle invocations so each invocation reads the updated versions. Dependencies do not need to be
+   published at this stage.
 
 2. On `master`, updated to the merge, run the module's `tagRelease` task:
 
