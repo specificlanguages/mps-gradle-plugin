@@ -1,0 +1,61 @@
+name: Renovate Gradle artifacts
+
+# Renovate's own artifact step (lockfiles and the wrapper JAR) runs Gradle on a shared runner without a Gradle
+# cache and fails on Maven Central rate limits (HTTP 429). renovate.json5 therefore skips that step for Gradle
+# updates, and this workflow regenerates the lockfiles and the wrapper on Renovate's pull requests instead.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: renovate-locks-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    name: Refresh lockfiles and wrapper
+    # Only react to pushes made by Renovate. The commit pushed below comes from a different actor, so it does not
+    # trigger another run.
+    if: >-
+      github.actor == 'renovate[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.head_ref, 'renovate/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          # Pushes made with the default GITHUB_TOKEN do not start other workflows, so the Build and Checks
+          # workflows would never run on the refreshed commit. Use a personal access token (or GitHub App token)
+          # with "contents: write" to have them run.
+          token: ${{ secrets.RENOVATE_LOCKS || github.token }}
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: jetbrains
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Regenerate the Gradle wrapper
+        run: |
+          VERSION=$(sed -n 's|^distributionUrl=.*/gradle-\(.*\)-bin\.zip$|\1|p' gradle/wrapper/gradle-wrapper.properties)
+          ./gradlew wrapper --gradle-version "$VERSION"
+      - name: Regenerate lockfiles
+        run: >-
+          ./gradlew dependencies
+          :artifact-transforms:dependencies :jbr-toolchain:dependencies
+          :mps-gradle-plugin:dependencies :mps-platform-cache:dependencies
+          --write-locks
+      - name: Commit changes
+        run: |
+          git add --all gradle gradlew gradlew.bat settings-gradle.lockfile '**/gradle.lockfile'
+          if git diff --cached --quiet; then
+            echo 'Lockfiles and wrapper are up to date.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(deps): refresh Gradle lockfiles and wrapper'
+          git push

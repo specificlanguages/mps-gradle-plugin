@@ -54,7 +54,10 @@ regenerate the locks and commit them alongside the dependency declarations:
 
 Runtime lock changes require version bumps for the affected modules and their transitive dependents, including changes
 to transitive external dependencies. Test and compile-only entries remain locked for reproducibility but do not trigger
-the release guard. Renovate updates Gradle lockfiles as part of dependency updates.
+the release guard. On Renovate's Gradle pull requests, the `renovate-locks` workflow regenerates the lockfiles and the
+Gradle wrapper and pushes the result as an extra commit. For that commit to start the other CI workflows, add a
+repository secret `RENOVATE_LOCKS` holding a token with `contents: write` access; with the default token the commit is
+pushed but no further checks run on it.
 
 ## Releasing
 
