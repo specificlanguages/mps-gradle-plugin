@@ -39,6 +39,34 @@ tasks.withType<JavaCompile>().configureEach {
 }
 ```
 
+## Downloading the JBR for other platforms
+
+Some builds need the JBR for platforms other than the current one, e.g. to package an MPS-based RCP for Windows, Linux
+and macOS. Use `jbrToolchain.selectPlatform` to make your own configuration resolve the JBR for a given platform. This
+works both for direct JBR dependencies and for marker artifacts such as `com.jetbrains.mps:mps-jbr`.
+
+```kotlin
+import com.specificlanguages.jbrtoolchain.JbrPlatform
+
+val jbrWin = configurations.register("jbrWin") {
+    isCanBeConsumed = false
+    jbrToolchain.selectPlatform(this, JbrPlatform.WINDOWS_X64)
+}
+val jbrMacAarch64 = configurations.register("jbrMacAarch64") {
+    isCanBeConsumed = false
+    jbrToolchain.selectPlatform(this, JbrPlatform.OSX_AARCH64)
+}
+
+dependencies {
+    jbrWin("com.jetbrains.mps:mps-jbr:2024.3")
+    jbrMacAarch64("com.jetbrains.mps:mps-jbr:2024.3")
+}
+```
+
+Each configuration resolves to the `.tgz` archive of the JBR for that platform. Available platforms are `WINDOWS_X64`,
+`WINDOWS_AARCH64`, `LINUX_X64`, `LINUX_AARCH64`, `OSX_X64` and `OSX_AARCH64`. Not every JBR version is published for
+every platform.
+
 ## Important notes
 
 The plugin was built for the MPS/mbeddr ecosystem and assumes that the JBR artifacts are published according to the
@@ -84,7 +112,8 @@ The jbr-toolchain plugin solves these problems at a cost of slightly higher impl
 The plugin creates a configuration called `jbr` and sets up
 [dependency substitution](https://docs.gradle.org/current/userguide/resolution_rules.html#sec:dependency-substitution-rules)
 to add a classifier corresponding to the current operating system and architecture (e.g. `osx-aarch64`) to the JBR
-distribution artifact (any `com.jetbrains.jdk` dependency). Marker artifacts that merely point at a JBR version, such as
+distribution artifact (any `com.jetbrains.jdk` dependency). `jbrToolchain.selectPlatform` sets up the same substitution
+on other configurations for a given platform. Marker artifacts that merely point at a JBR version, such as
 `com.jetbrains.mps:mps-jbr`, are left untouched and resolved for their transitive dependency on the actual JBR.
 
 The extracted JBR is cached using [mps-platform-cache](../mps-platform-cache). The cache is by default placed under the
