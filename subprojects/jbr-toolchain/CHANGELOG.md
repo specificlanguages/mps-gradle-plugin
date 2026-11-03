@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- `jbrToolchain.selectPlatform(configuration, platform)` to resolve the JBR for a platform other than the current one,
+  e.g. when packaging an RCP for several platforms. It works for direct JBR dependencies and for marker artifacts such
+  as `com.jetbrains.mps:mps-jbr`. Platforms are given as `JbrPlatform` constants, e.g. `JbrPlatform.WINDOWS_X64`.
+
 ## 1.2.2
 
 ### Dependency updates

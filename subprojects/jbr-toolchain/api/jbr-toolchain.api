@@ -1,8 +1,27 @@
+public final class com/specificlanguages/jbrtoolchain/JbrPlatform {
+	public static final field Companion Lcom/specificlanguages/jbrtoolchain/JbrPlatform$Companion;
+	public static final field LINUX_AARCH64 Lcom/specificlanguages/jbrtoolchain/JbrPlatform;
+	public static final field LINUX_X64 Lcom/specificlanguages/jbrtoolchain/JbrPlatform;
+	public static final field OSX_AARCH64 Lcom/specificlanguages/jbrtoolchain/JbrPlatform;
+	public static final field OSX_X64 Lcom/specificlanguages/jbrtoolchain/JbrPlatform;
+	public static final field WINDOWS_AARCH64 Lcom/specificlanguages/jbrtoolchain/JbrPlatform;
+	public static final field WINDOWS_X64 Lcom/specificlanguages/jbrtoolchain/JbrPlatform;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClassifier ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/specificlanguages/jbrtoolchain/JbrPlatform$Companion {
+}
+
 public abstract class com/specificlanguages/jbrtoolchain/JbrToolchainExtension {
 	public fun <init> (Lorg/gradle/api/provider/Provider;)V
 	public final fun getJavaLauncher ()Lorg/gradle/api/provider/Provider;
 	public abstract fun getJavaToolchainService ()Lorg/gradle/jvm/toolchain/JavaToolchainService;
 	public final fun getSpec ()Lorg/gradle/api/provider/Provider;
+	public final fun selectPlatform (Lorg/gradle/api/artifacts/Configuration;Lcom/specificlanguages/jbrtoolchain/JbrPlatform;)V
 }
 
 public abstract class com/specificlanguages/jbrtoolchain/JbrToolchainPlugin : org/gradle/api/Plugin {

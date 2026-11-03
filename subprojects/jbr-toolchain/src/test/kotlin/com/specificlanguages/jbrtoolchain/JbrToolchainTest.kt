@@ -60,6 +60,93 @@ class JbrToolchainTest {
         assertTrue(reused.output.contains("Reusing configuration cache."), reused.output)
         assertTrue(reused.output.contains(JBR_BUILD), reused.output)
     }
+
+    @Test
+    fun `selectPlatform resolves JBR for given platforms directly and through a marker`(
+        @TempDir testProjectDir: File,
+        @TempDir repoDir: File
+    ) {
+        val jbrVersion = "1.0-test"
+        val markerVersion = "1.0-test"
+
+        val jbrDir = repoDir.resolve("com/jetbrains/jdk/jbr_jcef/$jbrVersion").apply { mkdirs() }
+        jbrDir.resolve("jbr_jcef-$jbrVersion.pom").writeText(pom("com.jetbrains.jdk", "jbr_jcef", jbrVersion, ""))
+        for (classifier in listOf("windows-x64", "linux-aarch64", "osx-aarch64")) {
+            jbrDir.resolve("jbr_jcef-$jbrVersion-$classifier.tgz").writeText(classifier)
+        }
+
+        repoDir.resolve("com/jetbrains/mps/mps-jbr/$markerVersion").apply { mkdirs() }
+            .resolve("mps-jbr-$markerVersion.pom")
+            .writeText(
+                pom(
+                    "com.jetbrains.mps", "mps-jbr", markerVersion,
+                    """
+                    <dependencies>
+                      <dependency>
+                        <groupId>com.jetbrains.jdk</groupId>
+                        <artifactId>jbr_jcef</artifactId>
+                        <version>$jbrVersion</version>
+                      </dependency>
+                    </dependencies>
+                    """
+                )
+            )
+
+        testProjectDir.resolve("build.gradle.kts").writeText(
+            """
+            import com.specificlanguages.jbrtoolchain.JbrPlatform
+
+            plugins {
+                id("com.specificlanguages.jbr-toolchain")
+            }
+
+            repositories.maven("${repoDir.toURI()}")
+
+            val jbrWin = configurations.register("jbrWin") {
+                isCanBeConsumed = false
+                jbrToolchain.selectPlatform(this, JbrPlatform.WINDOWS_X64)
+            }
+            val jbrLinuxAarch64 = configurations.register("jbrLinuxAarch64") {
+                isCanBeConsumed = false
+                jbrToolchain.selectPlatform(this, JbrPlatform.LINUX_AARCH64)
+            }
+            val jbrMacAarch64 = configurations.register("jbrMacAarch64") {
+                isCanBeConsumed = false
+                jbrToolchain.selectPlatform(this, JbrPlatform.OSX_AARCH64)
+            }
+
+            dependencies {
+                jbrWin("com.jetbrains.jdk:jbr_jcef:$jbrVersion")
+                jbrLinuxAarch64("com.jetbrains.mps:mps-jbr:$markerVersion")
+                jbrMacAarch64("com.jetbrains.mps:mps-jbr:$markerVersion")
+            }
+
+            val printFiles by tasks.registering {
+                val files = listOf(jbrWin, jbrLinuxAarch64, jbrMacAarch64).map { config ->
+                    config.map { c -> c.name to c.incoming.files.elements.map { it.map { f -> f.asFile.name } } }
+                }
+                doLast {
+                    files.forEach {
+                        val (name, fileNames) = it.get()
+                        println("${'$'}name: ${'$'}{fileNames.get()}")
+                    }
+                }
+            }
+            """.trimIndent()
+        )
+
+        val result = GradleRunner.create()
+            .withProjectDir(testProjectDir)
+            .withArguments(":printFiles")
+            .withPluginClasspath()
+            .build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":printFiles")?.outcome)
+        assertThat(result.output, containsString("jbrWin: [jbr_jcef-$jbrVersion-windows-x64.tgz]"))
+        assertThat(result.output, containsString("jbrLinuxAarch64: [jbr_jcef-$jbrVersion-linux-aarch64.tgz]"))
+        assertThat(result.output, containsString("jbrMacAarch64: [jbr_jcef-$jbrVersion-osx-aarch64.tgz]"))
+    }
+
     @Test
     fun errorMessageWhenEmpty() {
         val project = ProjectBuilder.builder().build()
@@ -96,4 +183,16 @@ class JbrToolchainTest {
         )
     }
 
+    private fun pom(groupId: String, artifactId: String, version: String, body: String) =
+        """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <project xmlns="http://maven.apache.org/POM/4.0.0">
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>$groupId</groupId>
+          <artifactId>$artifactId</artifactId>
+          <version>$version</version>
+          <packaging>pom</packaging>
+          $body
+        </project>
+        """.trimIndent()
 }
