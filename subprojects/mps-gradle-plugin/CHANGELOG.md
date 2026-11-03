@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Dependency updates
 
 - jbr-toolchain 1.2.2-SNAPSHOT
-- mps-platform-cache 1.0.4-SNAPSHOT
+- mps-platform-cache 1.0.4
 
 ## 2.1.1
 
