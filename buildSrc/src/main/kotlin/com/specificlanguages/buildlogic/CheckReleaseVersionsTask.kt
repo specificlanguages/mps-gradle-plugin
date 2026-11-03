@@ -80,12 +80,7 @@ abstract class CheckReleaseVersionsTask @Inject constructor(
     private fun runtimeDependencies(git: Git, revision: String, module: ModuleInfo): Set<String> {
         val path = "${module.path}/gradle.lockfile"
         val lockfile = git.readFileAtRevision(revision, path) ?: return emptySet()
-        return lockfile.lineSequence()
-            .filter { !it.startsWith("#") && '=' in it }
-            .filter { "runtimeClasspath" in it.substringAfter('=').split(',') }
-            .map { it.substringBefore('=') }
-            .filter { it != "empty" }
-            .toSet()
+        return runtimeLockEntries(lockfile)
     }
 
     private fun dependentsClosure(module: String, byName: Map<String, ModuleInfo>): Set<String> {
