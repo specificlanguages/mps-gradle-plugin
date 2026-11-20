@@ -4,8 +4,10 @@ import com.specificlanguages.jbrtoolchain.JbrToolchainExtension
 import com.specificlanguages.jbrtoolchain.JbrToolchainPlugin
 import com.specificlanguages.mps.internal.ConfigurationNames
 import com.specificlanguages.mps.internal.configureMbeddrIntegration
+import com.specificlanguages.mps.internal.configureProjectDependencies
 import com.specificlanguages.mps.internal.createBundledDependenciesContainer
 import com.specificlanguages.mps.internal.createMpsBuildsContainer
+import com.specificlanguages.mps.internal.registerArtifactDirectoriesVariant
 import com.specificlanguages.mpsplatformcache.MpsPlatformCache
 import com.specificlanguages.mpsplatformcache.MpsPlatformCachePlugin
 import org.gradle.api.*
@@ -13,6 +15,8 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.ConsumableConfiguration
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.ProjectDependency
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentContainer
 import org.gradle.api.component.SoftwareComponentFactory
@@ -103,8 +107,14 @@ open class MpsPlugin @Inject constructor(
             }
 
             val resolveMpsLibraries by tasks.registering(Sync::class) {
-                dependsOn(mpsLibraries)
-                from(mpsLibraries.map { cfg -> cfg.map(project::zipTree) })
+                // Libraries of other projects (in this build or in included builds) are not extracted. To open the
+                // project in MPS, their sources are expected to be added to the MPS project as project libraries. The
+                // MPS build scripts use their build artifacts directories instead (see configureProjectDependencies).
+                val externalLibraries = mpsLibraries.map { cfg ->
+                    cfg.incoming.artifactView { componentFilter { it !is ProjectComponentIdentifier } }.files
+                }
+                dependsOn(externalLibraries)
+                from(externalLibraries.map { files -> files.map(project::zipTree) })
 
                 into(mpsDefaults.mpsLibrariesDirectory)
                 group = "build setup"
@@ -114,9 +124,15 @@ open class MpsPlugin @Inject constructor(
             val setupTask = tasks.register("setup") {
                 dependsOn(resolveMpsLibraries)
                 dependsOn(Callable { bundledDependencies.map(BundledDependency::resolveTask) })
+                dependsOn(Callable {
+                    listOf(apiConfiguration.get(), testImplementationConfiguration.get())
+                        .flatMap { it.dependencies.withType(ProjectDependency::class.java) }
+                        .map { dependency -> if (dependency.path == ":") ":setup" else "${dependency.path}:setup" }
+                        .distinct()
+                })
 
                 group = "build setup"
-                description = "Sets up the project so that it can be opened in MPS."
+                description = "Sets up the project and the projects it depends on so that it can be opened in MPS."
             }
 
             val executeGeneratorsConfiguration = configurations.register(ConfigurationNames.EXECUTE_GENERATORS) {
@@ -133,6 +149,7 @@ open class MpsPlugin @Inject constructor(
 
             val mpsBuilds = createMpsBuildsContainer(objects, tasks, generateBuildScriptsTask)
             extensions.add(typeOf<PolymorphicDomainObjectContainer<MpsBuild>>(), "mpsBuilds", mpsBuilds)
+            configureProjectDependencies(mpsBuilds, mpsLibraries, providers)
 
             configureMbeddrIntegration(project, mpsDefaults)
 
@@ -174,6 +191,7 @@ open class MpsPlugin @Inject constructor(
 
             val apiElementsConfiguration =
                 registerApiElementsConfiguration(apiConfiguration, zipTask, configurations, objects)
+            registerArtifactDirectoriesVariant(apiElementsConfiguration, mpsBuilds, providers)
 
             configurations[Dependency.DEFAULT_CONFIGURATION].apply {
                 extendsFrom(apiElementsConfiguration.get())
