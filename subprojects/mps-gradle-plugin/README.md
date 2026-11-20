@@ -120,6 +120,13 @@ dependency of each library it consumes.
 
 External libraries are extracted into `mpsDefaults.mpsLibrariesDirectory` (`build/dependencies` by default).
 
+For each top-level directory `X` of the extracted libraries, the MPS build scripts receive an Ant property `artifacts.X`
+pointing at that directory. MPS-generated build scripts read the location of the artifacts of a dependency build project
+named `X` from `artifacts.X`, so build scripts find libraries packaged by this plugin without additional path variables:
+their zips contain the artifacts directory of each published build as a top-level directory, and its name usually
+matches the name of the build project. Path variables set in `mpsDefaults.pathVariables` take precedence over these
+properties.
+
 ### Dependencies on other projects
 
 A dependency can also point at another project of the same Gradle build (`api(project(":other"))`) or at an included
@@ -238,6 +245,8 @@ Based on the above configuration, the plugin creates the following tasks:
   bundled dependencies, and `setup` of other projects this project depends on (see
   [Dependencies on other projects](#dependencies-on-other-projects)).
 - `resolveMpsLibraries` – downloads external MPS libraries and extracts them into `mpsDefaults.mpsLibrariesDirectory`.
+  Also writes `build/mps-libraries-artifacts.properties` with an `artifacts.<name>` property for each top-level
+  directory of the extracted libraries. The Ant tasks of all build scripts load this file.
 - `zip` – packages all artifacts of published main builds into a zip file.
 - `cleanMpsGenerated` – deletes directories with MPS-generated files (`source_gen`, `source_gen.caches`, `classes_gen`,
   `test_gen`, `test_gen.caches`) found in the `mpsProjectDirectory` of any MPS build. Symbolic links, hidden
@@ -308,6 +317,7 @@ val myTask by tasks.registering(RunAnt::class) {
 
     pathProperties.put("mps_home", file("/my/mps/home"))
     valueProperties.put("version", provider { project.version.toString() })
+    propertyFiles.from(file("my.properties")) // passed with -propertyfile, -D properties take precedence
 
     targets.set(listOf("myTarget")) // no default
 }

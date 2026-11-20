@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+
+- Ant tasks of build scripts receive an `artifacts.X` property for each top-level directory `X` of the extracted
+  external MPS libraries, so MPS build scripts find libraries packaged by this plugin without additional path variables.
+- `RunAnt.propertyFiles`: property files passed to Ant with `-propertyfile`.
+
 ### Changed
 
 - **Breaking:** MPS libraries produced by other projects of the build (project dependencies and included builds) are no

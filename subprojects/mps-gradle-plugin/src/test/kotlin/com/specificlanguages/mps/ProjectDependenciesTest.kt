@@ -3,6 +3,7 @@ package com.specificlanguages.mps
 import org.gradle.testkit.runner.GradleRunner
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.util.Properties
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -100,6 +102,13 @@ class ProjectDependenciesTest {
                             .forEach { (key, value) -> println("${'$'}key=${'$'}{value.canonicalPath}") }
                     }
                 }
+
+                val generateMainPropertyFiles = tasks.named<RunAnt>("generateMain").map { it.propertyFiles.files }
+                tasks.register("printPropertyFiles") {
+                    doLast {
+                        generateMainPropertyFiles.get().forEach { println("propertyFile=${'$'}{it.canonicalPath}") }
+                    }
+                }
             """.trimIndent()
         )
     }
@@ -134,6 +143,30 @@ class ProjectDependenciesTest {
             "artifacts.bLibs=${root.resolve("b/build/artifacts/bLibs").path}",
             "artifacts.main=${root.resolve("a/build/artifacts/main").path}",
         ))
+    }
+
+    @Test
+    fun `setup writes artifacts properties for top-level directories of external libraries`() {
+        runner(":a:setup").build()
+
+        val properties = Properties()
+        projectDir.resolve("a/build/mps-libraries-artifacts.properties").inputStream().use { properties.load(it) }
+
+        assertThat(properties.keys, contains("artifacts.ext"))
+        assertEquals(
+            projectDir.resolve("a/build/dependencies/ext").canonicalPath,
+            File(properties.getProperty("artifacts.ext")).canonicalPath
+        )
+    }
+
+    @Test
+    fun `Ant tasks load artifacts properties of external libraries`() {
+        val dryRunLines = runner(":a:generateMain", "--dry-run").build().output.lines()
+        assertThat(dryRunLines, containsInRelativeOrder(":a:resolveMpsLibraries SKIPPED", ":a:generateMain SKIPPED"))
+
+        val lines = runner(":a:printPropertyFiles").build().output.lines()
+        val expected = projectDir.canonicalFile.resolve("a/build/mps-libraries-artifacts.properties").path
+        assertThat(lines, hasItem("propertyFile=$expected"))
     }
 
     private fun runner(vararg arguments: String): GradleRunner = GradleRunner.create()
