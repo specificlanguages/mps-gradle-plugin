@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- **Breaking:** MPS libraries produced by other projects of the build (project dependencies and included builds) are no
+  longer extracted into `mpsDefaults.mpsLibrariesDirectory` (`build/dependencies`). Instead, each project exposes the
+  artifacts directories of its published main builds to other projects, and the Ant tasks (`generate<Name>`,
+  `assemble<Name>`, `check<Name>`) receive their locations as `artifacts.<directory name>` properties. Update MPS build
+  models and path variables that expect these libraries in `build/dependencies`.
+- **Breaking:** `setup` no longer builds project dependencies. It only extracts external MPS libraries, including the
+  external libraries of project dependencies, and runs `setup` of each project that is a direct project dependency in
+  `api` or `testImplementation`. The sources of project dependencies are expected to be added to the MPS project as
+  project libraries.
+- The Ant tasks also receive the artifacts directories of all main builds of the same project as
+  `artifacts.<directory name>` properties.
+
 ## 2.1.2
 
 ### Fixed

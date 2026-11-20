@@ -118,6 +118,26 @@ There is no `implementation` configuration because MPS does not support hiding i
 consumers at the moment. For example, the consumer's build script has to specify the location of every transitive
 dependency of each library it consumes.
 
+External libraries are extracted into `mpsDefaults.mpsLibrariesDirectory` (`build/dependencies` by default).
+
+### Dependencies on other projects
+
+A dependency can also point at another project of the same Gradle build (`api(project(":other"))`) or at an included
+build. The plugin treats such libraries as internal: it assumes that the sources of the other project are added to the
+MPS project as a project library, so MPS can see their modules without building them.
+
+- `setup` does not build internal libraries. It extracts the external libraries of the whole dependency graph, including
+  the external libraries of other projects, and runs `setup` of each project listed directly in `api` or
+  `testImplementation`. Included builds are not covered; add a dependency on their `setup` task manually if needed.
+- The MPS build scripts use the artifacts of the other projects directly from their artifacts directories. Each project
+  exposes the `buildArtifactsDirectory` of its published main builds to other projects. The Ant tasks of a project
+  depend on assembling these builds and receive the location of each directory as an Ant property named
+  `artifacts.<directory name>`, which is the property that MPS-generated build scripts read the location of a dependency
+  build project from. For this to work, the directory name must match the name of the MPS build project, which is the
+  case for the usual `build/artifacts/<build project name>`.
+
+The Ant tasks also receive `artifacts.<directory name>` properties for all main builds of the same project.
+
 ## Describing MPS build scripts
 
 Example:
@@ -214,8 +234,10 @@ Version numbers are stripped from the downloaded files to reduce the number of c
 Based on the above configuration, the plugin creates the following tasks:
 
 - `generateBuildScripts` – runs the MPS generator to generate Ant files for all specified build scripts.
-- `setup` – depends on tasks necessary to be able to open the project in MPS, such as downloading external MPS
-  dependencies and bundled dependencies.
+- `setup` – depends on tasks necessary to be able to open the project in MPS: downloading external MPS dependencies,
+  bundled dependencies, and `setup` of other projects this project depends on (see
+  [Dependencies on other projects](#dependencies-on-other-projects)).
+- `resolveMpsLibraries` – downloads external MPS libraries and extracts them into `mpsDefaults.mpsLibrariesDirectory`.
 - `zip` – packages all artifacts of published main builds into a zip file.
 - `cleanMpsGenerated` – deletes directories with MPS-generated files (`source_gen`, `source_gen.caches`, `classes_gen`,
   `test_gen`, `test_gen.caches`) found in the `mpsProjectDirectory` of any MPS build. Symbolic links, hidden
@@ -231,7 +253,8 @@ For each entry in `bundledDependencies` the following task is created:
 For each build script in `mpsBuilds` the following tasks are created:
 
 - `generate<Name>` – runs the `generate` Ant target of a single build script. Depends on the `assemble` targets of its
-  build script dependencies.
+  build script dependencies and on the `assemble<Name>` tasks of published main builds of other projects this project
+  depends on (see [Dependencies on other projects](#dependencies-on-other-projects)).
 - `assemble<Name>` (main build scripts only) – runs the `clean` and `assemble` targets of the generated build script, in
   that order.
 - `check<Name>` (test build scripts only) – runs the `clean` and `check` targets of the generated build script, in that
@@ -344,7 +367,8 @@ The following properties can be customized:
   means.
 - `javaLauncher` – uses the JVM from the `jbr` configuration by default. Override to use a different Java runtime.
 - `antClasspath` – uses the Ant distribution bundled with MPS by default. Override to use a different Ant version.
-- `mpsLibrariesDirectory` – the directory where downloaded MPS libraries from the `api` configuration will be extracted.
+- `mpsLibrariesDirectory` – the directory where downloaded external MPS libraries from the `api` and
+  `testImplementation` configurations will be extracted.
 - `pathVariables` – can be used to specify custom path variables. These are added to the MPS environment for the
   `generateBuildScripts` task and passed as Ant properties to all `RunAnt` tasks.
 
