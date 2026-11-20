@@ -129,10 +129,10 @@ class ProjectDependenciesTest {
     fun `Ant tasks receive artifacts locations of builds`() {
         val lines = runner(":a:printArtifactsProperties").build().output.lines()
 
-        val root = projectDir.canonicalPath
+        val root = projectDir.canonicalFile
         assertThat(lines, hasItems(
-            "artifacts.bLibs=$root/b/build/artifacts/bLibs",
-            "artifacts.main=$root/a/build/artifacts/main",
+            "artifacts.bLibs=${root.resolve("b/build/artifacts/bLibs").path}",
+            "artifacts.main=${root.resolve("a/build/artifacts/main").path}",
         ))
     }
 
