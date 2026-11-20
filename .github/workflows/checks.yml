@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: j178/prek-action@v3.1.0
+      - uses: j178/prek-action@v3.1.1
 
   # Fails if a public API change is not matched by a version bump, or if a changed module or its dependents
   # are not bumped. Needs full history and release tags.
