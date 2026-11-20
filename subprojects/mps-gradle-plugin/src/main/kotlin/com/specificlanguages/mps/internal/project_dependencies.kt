@@ -88,6 +88,15 @@ private fun antTasks(build: MpsBuild): List<TaskProvider<out RunAnt>> = when (bu
 private fun artifactsProperties(directories: Iterable<File>): Map<String, File> =
     directories.associateBy { "artifacts.${it.name}" }
 
+/**
+ * The artifacts directory of a main build, built by its assemble task.
+ *
+ * `ConfigurationVariant.artifact(...)` would create and configure the artifact for us, but it adds the artifact
+ * immediately, so it would have to be called once [MainBuild.published] is known. That is not the case in
+ * `mpsBuilds.all { ... }`: `create(name) { ... }` adds a build to the container before running its configuration
+ * block. Implementing [PublishArtifact] lets [registerArtifactDirectoriesVariant] add the artifacts lazily through
+ * `addAllLater`. Gradle's own plugins use the internal `LazyPublishArtifact` class for the same purpose.
+ */
 private class BuildArtifactsDirectory(private val build: MainBuild) : PublishArtifact {
     override fun getName(): String = file.name
     override fun getExtension(): String = ""
