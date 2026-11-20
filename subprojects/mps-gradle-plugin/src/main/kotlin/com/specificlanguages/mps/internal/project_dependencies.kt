@@ -79,7 +79,7 @@ internal fun configureProjectDependencies(
     }
 }
 
-private fun antTasks(build: MpsBuild): List<TaskProvider<out RunAnt>> = when (build) {
+internal fun antTasks(build: MpsBuild): List<TaskProvider<out RunAnt>> = when (build) {
     is MainBuild -> listOf(build.generateTask, build.assembleTask)
     is TestBuild -> listOf(build.generateTask, build.assembleAndCheckTask)
     else -> listOf(build.generateTask)

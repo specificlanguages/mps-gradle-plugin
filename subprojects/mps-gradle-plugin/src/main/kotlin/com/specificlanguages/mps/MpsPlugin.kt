@@ -4,7 +4,9 @@ import com.specificlanguages.jbrtoolchain.JbrToolchainExtension
 import com.specificlanguages.jbrtoolchain.JbrToolchainPlugin
 import com.specificlanguages.mps.internal.ConfigurationNames
 import com.specificlanguages.mps.internal.configureMbeddrIntegration
+import com.specificlanguages.mps.internal.configureLibrariesArtifactsProperties
 import com.specificlanguages.mps.internal.configureProjectDependencies
+import com.specificlanguages.mps.internal.writeArtifactsProperties
 import com.specificlanguages.mps.internal.createBundledDependenciesContainer
 import com.specificlanguages.mps.internal.createMpsBuildsContainer
 import com.specificlanguages.mps.internal.registerArtifactDirectoriesVariant
@@ -98,6 +100,8 @@ open class MpsPlugin @Inject constructor(
                 extendsFrom(apiConfiguration.get(), testImplementationConfiguration.get())
             }
 
+            val mpsLibrariesArtifactsProperties = layout.buildDirectory.file("mps-libraries-artifacts.properties")
+
             val resolveMpsLibraries by tasks.registering(Sync::class) {
                 // Libraries of other projects (in this build or in included builds) are not extracted. To open the
                 // project in MPS, their sources are expected to be added to the MPS project as project libraries. The
@@ -111,6 +115,12 @@ open class MpsPlugin @Inject constructor(
                 into(mpsDefaults.mpsLibrariesDirectory)
                 group = "build setup"
                 description = "Downloads and extracts all external MPS libraries."
+
+                val librariesDirectory = mpsDefaults.mpsLibrariesDirectory
+                outputs.file(mpsLibrariesArtifactsProperties)
+                doLast {
+                    writeArtifactsProperties(librariesDirectory.get().asFile, mpsLibrariesArtifactsProperties.get().asFile)
+                }
             }
 
             val setupTask = tasks.register("setup") {
@@ -142,6 +152,10 @@ open class MpsPlugin @Inject constructor(
             val mpsBuilds = createMpsBuildsContainer(objects, tasks, generateBuildScriptsTask)
             extensions.add(typeOf<PolymorphicDomainObjectContainer<MpsBuild>>(), "mpsBuilds", mpsBuilds)
             configureProjectDependencies(mpsBuilds, mpsLibraries, providers)
+            configureLibrariesArtifactsProperties(
+                mpsBuilds,
+                files(mpsLibrariesArtifactsProperties).builtBy(resolveMpsLibraries)
+            )
 
             configureMbeddrIntegration(project, mpsDefaults)
 

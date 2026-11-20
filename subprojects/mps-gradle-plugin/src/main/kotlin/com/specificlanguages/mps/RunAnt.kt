@@ -12,6 +12,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.PathSensitive
@@ -61,6 +62,14 @@ abstract class RunAnt : DefaultTask() {
      */
     @get:Internal("not considered inputs")
     abstract val pathProperties: MapProperty<String, File>
+
+    /**
+     * Property files to load properties from, passed to Ant with `-propertyfile`. Properties given in
+     * [pathProperties] and [valueProperties] take precedence over properties loaded from these files.
+     */
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val propertyFiles: ConfigurableFileCollection
 
     /**
      * Value properties (e.g. build numbers, version numbers, etc.). Considered task inputs.
@@ -145,6 +154,10 @@ abstract class RunAnt : DefaultTask() {
     private fun buildAntArguments(): List<String?> = buildList {
         addAll(pathProperties.get().map { "-D${it.key}=${it.value}" })
         addAll(valueProperties.get().map { "-D${it.key}=${it.value}" })
+        propertyFiles.forEach {
+            add("-propertyfile")
+            add(it.path)
+        }
 
         addAll(options.get())
 
