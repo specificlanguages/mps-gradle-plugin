@@ -9,18 +9,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
-- `clean` deletes `test_gen` and `test_gen.caches` directories instead of `tests_gen` and `tests_gen.caches`, which MPS
-  does not create.
-- `clean` searches for MPS-generated directories when it runs instead of at configuration time, so the files of the
+- MPS-generated directories are deleted from `test_gen` and `test_gen.caches` instead of `tests_gen` and
+  `tests_gen.caches`, which MPS does not create.
+- MPS-generated directories are searched for when `clean` runs instead of at configuration time, so the files of the
   project no longer invalidate the configuration cache.
 - `RunAnt` deletes and recreates its default working directory before each run. Previously the working directory was
   preserved, and a task running after `clean` in the same build failed with the configuration cache enabled because the
   directory did not exist.
-- `clean` does not follow symbolic links and does not search the directories of subprojects.
-- `RunAnt` tasks run after `clean` when both are scheduled in the same build.
+- `RunAnt` tasks run after `clean` and `cleanMpsGenerated` when they are scheduled in the same build.
 
 ### Changed
 
+- MPS-generated directories are deleted by a new `cleanMpsGenerated` task, which `clean` depends on. The task searches
+  only the `mpsProjectDirectory` of each MPS build instead of the whole project directory, and does not follow symbolic
+  links or search hidden directories, the build directory, or the directories of subprojects. A project without MPS
+  builds no longer has its generated directories deleted.
 - The default working directory of `RunAnt` is the `work` subdirectory of the task's temporary directory, so deleting it
   keeps the MPS config, system, and log directories. A working directory set to another path is preserved unless
   `preserveWorkingDirectory` is set to `false`.

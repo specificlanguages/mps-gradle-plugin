@@ -23,7 +23,6 @@ import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.plugins.ExtensionContainer
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
-import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskContainer
 import org.gradle.api.tasks.TaskProvider
@@ -38,31 +37,34 @@ import javax.inject.Inject
 import kotlin.collections.emptyList
 
 /**
- * Finds directories with MPS-generated files under [root]. Does not follow symbolic links and does not descend into
- * [excludedDirs].
+ * Finds directories with MPS-generated files under [roots]. Does not follow symbolic links and does not descend into
+ * hidden directories or [excludedDirs].
  */
-private fun allGeneratedDirs(root: File, excludedDirs: Set<File>): Sequence<File> {
+private fun allGeneratedDirs(roots: Set<File>, excludedDirs: Set<File>): Set<File> {
     val dirsToFind = arrayOf("source_gen", "source_gen.caches", "classes_gen", "test_gen", "test_gen.caches")
-    return sequence {
-        val stack = mutableListOf<File>()
-        stack.add(root)
+    val result = mutableSetOf<File>()
+    val stack = roots.toMutableList()
 
-        while (stack.isNotEmpty()) {
-            val top = stack.removeAt(stack.size - 1)
-            val files = top.listFiles() ?: continue
+    while (stack.isNotEmpty()) {
+        val top = stack.removeAt(stack.size - 1)
+        val files = top.listFiles() ?: continue
 
-            for (file in files) {
-                if (Files.isSymbolicLink(file.toPath()) || !file.isDirectory || file in excludedDirs) { continue }
+        for (file in files) {
+            if (file.name.startsWith(".") || file in excludedDirs) { continue }
+            if (Files.isSymbolicLink(file.toPath()) || !file.isDirectory) { continue }
 
-                if (file.name in dirsToFind) {
-                    yield(file)
-                } else {
-                    stack.add(file)
-                }
+            if (file.name in dirsToFind) {
+                result.add(file)
+            } else {
+                stack.add(file)
             }
         }
     }
+
+    return result
 }
+
+private const val CLEAN_MPS_GENERATED_TASK_NAME = "cleanMpsGenerated"
 
 @Suppress("unused", "DEPRECATION")
 open class MpsPlugin @Inject constructor(
@@ -141,18 +143,29 @@ open class MpsPlugin @Inject constructor(
                 })
             }
 
-            // Extend the clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
-            // classes_gen, test_gen, test_gen.caches. The directories are searched for when the task runs, so that the
-            // search does not make the files of the project inputs of the configuration cache. Directories of
-            // subprojects are skipped, they belong to the subprojects.
-            tasks.named(BasePlugin.CLEAN_TASK_NAME, Delete::class) {
-                val projectDirectory = layout.projectDirectory.asFile
+            // Directories with MPS-generated files are searched for when the task runs, so that the search does not
+            // make the files of the project inputs of the configuration cache. Directories of subprojects are skipped,
+            // they belong to the subprojects.
+            val cleanMpsGeneratedTask = tasks.register(CLEAN_MPS_GENERATED_TASK_NAME) {
+                group = LifecycleBasePlugin.BUILD_GROUP
+                description = "Deletes directories with MPS-generated files (source_gen, source_gen.caches, " +
+                        "classes_gen, test_gen, test_gen.caches) in the MPS projects of all MPS builds."
+
+                val mpsProjectDirectories = provider { mpsBuilds.map { it.mpsProjectDirectory.get().asFile }.toSet() }
+                val buildDirectory = layout.buildDirectory.asFile
                 val subprojectDirectories = subprojects.map { it.projectDir }.toSet()
                 val fileSystemOperations = fileSystemOperations
                 doLast {
-                    val generatedDirs = allGeneratedDirs(projectDirectory, subprojectDirectories).toList()
+                    val generatedDirs = allGeneratedDirs(
+                        mpsProjectDirectories.get(),
+                        subprojectDirectories + buildDirectory.get()
+                    )
                     fileSystemOperations.delete { delete(generatedDirs) }
                 }
+            }
+
+            tasks.named(BasePlugin.CLEAN_TASK_NAME) {
+                dependsOn(cleanMpsGeneratedTask)
             }
 
             val zipTask = registerZipTask(mpsBuilds, this.tasks)
@@ -273,9 +286,9 @@ open class MpsPlugin @Inject constructor(
         generateBackendConfiguration: NamedDomainObjectProvider<Configuration>
     ) {
         tasks.withType(RunAnt::class.java).configureEach {
-            // The clean task does not declare the directories it deletes, so Gradle would not otherwise keep it from
-            // running at the same time as the tasks that write to them.
-            mustRunAfter(BasePlugin.CLEAN_TASK_NAME)
+            // RunAnt tasks declare no outputs, and the cleanMpsGenerated task does not declare the directories it
+            // deletes, so Gradle would not otherwise keep the clean tasks from running at the same time.
+            mustRunAfter(BasePlugin.CLEAN_TASK_NAME, CLEAN_MPS_GENERATED_TASK_NAME)
 
             javaLauncher.convention(mpsDefaults.javaLauncher)
             pathProperties.put("mps_home", mpsDefaults.mpsHome.asFile)

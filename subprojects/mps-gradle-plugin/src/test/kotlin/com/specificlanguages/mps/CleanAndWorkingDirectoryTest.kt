@@ -1,6 +1,8 @@
 package com.specificlanguages.mps
 
 import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.TaskOutcome
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -11,7 +13,7 @@ import java.nio.file.Files
 class CleanAndWorkingDirectoryTest {
 
     @Test
-    fun `clean does not follow symbolic links or descend into subprojects`(
+    fun `cleanMpsGenerated searches only the MPS project directories`(
         @TempDir projectDir: File,
         @TempDir outsideDir: File
     ) {
@@ -19,32 +21,53 @@ class CleanAndWorkingDirectoryTest {
             """
             rootProject.name = "clean-test"
             include("sub", "plain")
+            project(":sub").projectDir = file("code/sub")
+            project(":plain").projectDir = file("code/plain")
             """.trimIndent()
         )
-        val mpsPlugin = """
+        fun mpsProject(mpsProjectDirectory: String) = """
+            import com.specificlanguages.mps.MainBuild
+
             plugins {
                 id("com.specificlanguages.mps")
             }
+
+            mpsBuilds {
+                create<MainBuild>("main") {
+                    mpsProjectDirectory = layout.projectDirectory.dir("$mpsProjectDirectory")
+                }
+            }
         """.trimIndent()
-        projectDir.resolve("build.gradle.kts").writeText(mpsPlugin)
-        projectDir.resolve("sub").mkdirs()
-        projectDir.resolve("sub/build.gradle.kts").writeText(mpsPlugin)
-        projectDir.resolve("plain").mkdirs()
+        projectDir.resolve("build.gradle.kts").writeText(
+            mpsProject("code") + "\n\nlayout.buildDirectory = layout.projectDirectory.dir(\"code/build\")\n"
+        )
+        projectDir.resolve("code/sub").mkdirs()
+        projectDir.resolve("code/sub/build.gradle.kts").writeText(mpsProject("."))
+        projectDir.resolve("code/plain").mkdirs()
 
-        val rootGenerated = projectDir.resolve("solutions/root/source_gen").also { it.mkdirs() }
-        val subGenerated = projectDir.resolve("sub/solutions/sub/source_gen").also { it.mkdirs() }
-        val plainGenerated = projectDir.resolve("plain/solutions/plain/source_gen").also { it.mkdirs() }
+        fun generatedDir(path: String) = projectDir.resolve(path).also { it.mkdirs() }
+
+        val rootGenerated = generatedDir("code/solutions/root/source_gen")
+        val outsideMpsProject = generatedDir("other/solutions/other/source_gen")
+        val hidden = generatedDir("code/.hidden/source_gen")
+        val inBuildDirectory = generatedDir("code/build/unpacked/source_gen")
+        val subGenerated = generatedDir("code/sub/solutions/sub/source_gen")
+        val plainGenerated = generatedDir("code/plain/solutions/plain/source_gen")
         val outsideGenerated = outsideDir.resolve("solutions/outside/source_gen").also { it.mkdirs() }
-        Files.createSymbolicLink(projectDir.resolve("linked").toPath(), outsideDir.toPath())
+        Files.createSymbolicLink(projectDir.resolve("code/linked").toPath(), outsideDir.toPath())
 
-        runner(projectDir, ":clean").build()
+        runner(projectDir, ":cleanMpsGenerated").build()
 
         assertFalse(rootGenerated.exists(), "$rootGenerated should be deleted")
-        assertTrue(subGenerated.exists(), "$subGenerated should be kept by the root project's clean")
-        assertTrue(plainGenerated.exists(), "$plainGenerated should be kept by the root project's clean")
-        assertTrue(outsideGenerated.exists(), "$outsideGenerated should be kept because it is behind a symbolic link")
+        assertTrue(outsideMpsProject.exists(), "$outsideMpsProject should be kept, it is outside the MPS project")
+        assertTrue(hidden.exists(), "$hidden should be kept, it is in a hidden directory")
+        assertTrue(inBuildDirectory.exists(), "$inBuildDirectory should be kept, it is in the build directory")
+        assertTrue(subGenerated.exists(), "$subGenerated should be kept, it belongs to a subproject")
+        assertTrue(plainGenerated.exists(), "$plainGenerated should be kept, it belongs to a subproject")
+        assertTrue(outsideGenerated.exists(), "$outsideGenerated should be kept, it is behind a symbolic link")
 
-        runner(projectDir, ":sub:clean").build()
+        val result = runner(projectDir, ":sub:clean").build()
+        assertEquals(TaskOutcome.SUCCESS, result.task(":sub:cleanMpsGenerated")?.outcome)
         assertFalse(subGenerated.exists(), "$subGenerated should be deleted by the subproject's clean")
     }
 

@@ -18,8 +18,14 @@ class ConfigurationCacheTest {
         projectDir.resolve("settings.gradle.kts").writeText("""rootProject.name = "clean-test"""")
         projectDir.resolve("build.gradle.kts").writeText(
             """
+            import com.specificlanguages.mps.MainBuild
+
             plugins {
                 id("com.specificlanguages.mps")
+            }
+
+            mpsBuilds {
+                create<MainBuild>("main")
             }
             """.trimIndent()
         )
@@ -37,7 +43,7 @@ class ConfigurationCacheTest {
         createGeneratedDirs()
 
         val first = runner(projectDir, "clean").build()
-        assertEquals(TaskOutcome.SUCCESS, first.task(":clean")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, first.task(":cleanMpsGenerated")?.outcome)
         generatedDirs.forEach { assertFalse(it.exists(), "$it should be deleted") }
         assertTrue(source.exists(), "$source should be kept")
 
