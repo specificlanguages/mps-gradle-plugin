@@ -86,8 +86,6 @@ class ConfigurationCacheTest {
             tasks.register<RunAnt>("runAnt") {
                 buildFile = layout.projectDirectory.file("build.xml")
                 targets = listOf("hello")
-                // The task declares no outputs, so nothing else keeps it from running in parallel with `clean`.
-                mustRunAfter(tasks.clean)
             }
             """.trimIndent()
         )
