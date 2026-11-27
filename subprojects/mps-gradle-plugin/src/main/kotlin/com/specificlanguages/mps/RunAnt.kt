@@ -115,7 +115,7 @@ abstract class RunAnt : DefaultTask() {
         workingDirectory.convention(project.layout.dir(project.provider { temporaryDir }))
 
         preserveWorkingDirectory.convention(workingDirectory.zip(project.layout.buildDirectory) { wd, bd ->
-            wd.asFile.startsWith(bd.asFile)
+            !wd.asFile.startsWith(bd.asFile)
         })
     }
 
@@ -124,7 +124,7 @@ abstract class RunAnt : DefaultTask() {
         if (!preserveWorkingDirectory.get()) {
             val dir = workingDirectory.get()
             fileSystemOperations.delete { delete(dir) }
-            Files.createDirectory(workingDirectory.get().asFile.toPath())
+            Files.createDirectories(workingDirectory.get().asFile.toPath())
         }
 
         execOperations.javaexec {
