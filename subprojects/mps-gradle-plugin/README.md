@@ -217,6 +217,9 @@ Based on the above configuration, the plugin creates the following tasks:
 - `setup` – depends on tasks necessary to be able to open the project in MPS, such as downloading external MPS
   dependencies and bundled dependencies.
 - `zip` – packages all artifacts of published main builds into a zip file.
+- `cleanMpsGenerated` – deletes directories with MPS-generated files (`source_gen`, `source_gen.caches`, `classes_gen`,
+  `test_gen`, `test_gen.caches`) found in the `mpsProjectDirectory` of any MPS build. Symbolic links, hidden
+  directories, the build directory, and the directories of subprojects are not searched. `clean` depends on this task.
 - `test` – runs tests in all test build scripts. `test` is a lifecycle task that does nothing on its own but depends on
   `check<Name>` tasks of all test build scripts.
 
