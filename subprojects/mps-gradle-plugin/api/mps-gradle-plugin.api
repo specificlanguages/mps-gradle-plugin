@@ -47,7 +47,7 @@ public abstract interface class com/specificlanguages/mps/MpsDefaultsExtension {
 }
 
 public class com/specificlanguages/mps/MpsPlugin : org/gradle/api/Plugin {
-	public fun <init> (Lorg/gradle/api/component/SoftwareComponentFactory;Lorg/gradle/jvm/toolchain/JavaToolchainService;)V
+	public fun <init> (Lorg/gradle/api/component/SoftwareComponentFactory;Lorg/gradle/jvm/toolchain/JavaToolchainService;Lorg/gradle/api/file/FileSystemOperations;)V
 	public synthetic fun apply (Ljava/lang/Object;)V
 	public fun apply (Lorg/gradle/api/Project;)V
 }
