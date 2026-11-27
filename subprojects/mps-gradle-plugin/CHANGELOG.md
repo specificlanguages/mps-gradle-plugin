@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+
+- `clean` deletes `test_gen` and `test_gen.caches` directories instead of `tests_gen` and `tests_gen.caches`, which MPS
+  does not create.
+- `clean` searches for MPS-generated directories when it runs instead of at configuration time, so the files of the
+  project no longer invalidate the configuration cache.
+- `RunAnt` deletes and recreates its working directory by default when the directory is inside the build directory, as
+  documented for `preserveWorkingDirectory`. Previously the working directory was preserved, and a task running after
+  `clean` in the same build failed with the configuration cache enabled because the directory did not exist.
+
 ### Dependency updates
 
 - jbr-toolchain 1.3.0-SNAPSHOT

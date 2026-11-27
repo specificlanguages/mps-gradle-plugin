@@ -17,6 +17,7 @@ import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentContainer
 import org.gradle.api.component.SoftwareComponentFactory
 import org.gradle.api.file.Directory
+import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.BasePlugin
@@ -37,7 +38,7 @@ import javax.inject.Inject
 import kotlin.collections.emptyList
 
 private fun allGeneratedDirs(root: Directory): Sequence<File> {
-    val dirsToFind = arrayOf("source_gen", "source_gen.caches", "classes_gen", "tests_gen", "tests_gen.caches")
+    val dirsToFind = arrayOf("source_gen", "source_gen.caches", "classes_gen", "test_gen", "test_gen.caches")
     return sequence {
         val stack = mutableListOf<File>()
         stack.add(root.asFile)
@@ -62,7 +63,8 @@ private fun allGeneratedDirs(root: Directory): Sequence<File> {
 @Suppress("unused", "DEPRECATION")
 open class MpsPlugin @Inject constructor(
     private val softwareComponentFactory: SoftwareComponentFactory,
-    private val toolchains: JavaToolchainService
+    private val toolchains: JavaToolchainService,
+    private val fileSystemOperations: FileSystemOperations
 ) : Plugin<Project> {
 
     override fun apply(project: Project) {
@@ -136,9 +138,15 @@ open class MpsPlugin @Inject constructor(
             }
 
             // Extend the clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
-            // classes_gen, tests_gen, tests_gen.caches.
+            // classes_gen, test_gen, test_gen.caches. The directories are searched for when the task runs, so that the
+            // search does not make the files of the project inputs of the configuration cache.
             tasks.named(BasePlugin.CLEAN_TASK_NAME, Delete::class) {
-                delete({ allGeneratedDirs(layout.projectDirectory).asIterable() })
+                val projectDirectory = layout.projectDirectory
+                val fileSystemOperations = fileSystemOperations
+                doLast {
+                    val generatedDirs = allGeneratedDirs(projectDirectory).toList()
+                    fileSystemOperations.delete { delete(generatedDirs) }
+                }
             }
 
             val zipTask = registerZipTask(mpsBuilds, this.tasks)
