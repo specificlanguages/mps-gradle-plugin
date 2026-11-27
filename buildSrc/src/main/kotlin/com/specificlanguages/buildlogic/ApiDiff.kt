@@ -7,6 +7,10 @@ package com.specificlanguages.buildlogic
  *
  * A signature change appears as one removed declaration plus one added declaration, so it is (correctly)
  * treated as a breaking change.
+ *
+ * Constructors of Gradle plugin classes (classes implementing `org.gradle.api.Plugin`) are ignored: Gradle
+ * instantiates plugins itself and supplies the constructor parameters by injection, so adding or removing an
+ * injected service does not affect consumers of the plugin.
  */
 fun requiredLevelFromApiDiff(baselineApi: String, currentApi: String): ChangeLevel {
     val baseline = declarations(baselineApi)
@@ -26,15 +30,25 @@ fun requiredLevelFromApiDiff(baselineApi: String, currentApi: String): ChangeLev
 private fun declarations(api: String): Set<String> {
     val result = mutableSetOf<String>()
     var enclosingClass = ""
+    var enclosingClassIsPlugin = false
     for (line in api.lines()) {
         val trimmed = line.trim()
         if (trimmed.isEmpty() || trimmed == "}") continue
         if (line.startsWith("\t") || line.startsWith(" ")) {
+            if (enclosingClassIsPlugin && isConstructor(trimmed)) continue
             result.add("$enclosingClass => $trimmed")
         } else {
             enclosingClass = trimmed
+            enclosingClassIsPlugin = isPluginClass(trimmed)
             result.add("class $trimmed")
         }
     }
     return result
 }
+
+/** Whether a class header line of a `.api` dump declares a class that implements `org.gradle.api.Plugin`. */
+private fun isPluginClass(header: String): Boolean =
+    header.substringAfter(" : ", "").removeSuffix("{").split(",").any { it.trim() == "org/gradle/api/Plugin" }
+
+/** Whether a member line of a `.api` dump declares a constructor. */
+private fun isConstructor(member: String): Boolean = " <init> (" in member
