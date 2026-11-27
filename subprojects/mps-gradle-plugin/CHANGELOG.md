@@ -13,9 +13,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   does not create.
 - `clean` searches for MPS-generated directories when it runs instead of at configuration time, so the files of the
   project no longer invalidate the configuration cache.
-- `RunAnt` deletes and recreates its working directory by default when the directory is inside the build directory, as
-  documented for `preserveWorkingDirectory`. Previously the working directory was preserved, and a task running after
-  `clean` in the same build failed with the configuration cache enabled because the directory did not exist.
+- `RunAnt` deletes and recreates its default working directory before each run. Previously the working directory was
+  preserved, and a task running after `clean` in the same build failed with the configuration cache enabled because the
+  directory did not exist.
+- `clean` does not follow symbolic links and does not search the directories of subprojects.
+- `RunAnt` tasks run after `clean` when both are scheduled in the same build.
+
+### Changed
+
+- The default working directory of `RunAnt` is the `work` subdirectory of the task's temporary directory, so deleting it
+  keeps the MPS config, system, and log directories. A working directory set to another path is preserved unless
+  `preserveWorkingDirectory` is set to `false`.
 
 ### Dependency updates
 

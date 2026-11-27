@@ -87,17 +87,18 @@ abstract class RunAnt : DefaultTask() {
     abstract val environment: MapProperty<String, String>
 
     /**
-     * Working directory for the forked JVM. Default is the Gradle-provided temporary directory of the task.
+     * Working directory for the forked JVM. Default is the `work` subdirectory of the Gradle-provided temporary
+     * directory of the task.
      *
-     * The working directory is deleted before each run in order to ensure clean execution. This is controlled by
-     * [preserveWorkingDirectory].
+     * The default working directory is deleted before each run in order to ensure clean execution. This is controlled
+     * by [preserveWorkingDirectory].
      */
     @get:Internal
     abstract val workingDirectory: DirectoryProperty
 
     /**
-     * Indicates whether to preserve working directory. Working directory is deleted by default unless it is set to
-     * a path outside the build directory.
+     * Indicates whether to preserve working directory. By default, only the default working directory is deleted, a
+     * working directory set to any other path is preserved.
      */
     @get:Internal
     abstract val preserveWorkingDirectory: Property<Boolean>
@@ -112,10 +113,11 @@ abstract class RunAnt : DefaultTask() {
 
         environment.putAll(project.providers.environmentVariablesPrefixedBy(""))
 
-        workingDirectory.convention(project.layout.dir(project.provider { temporaryDir }))
+        val defaultWorkingDirectory = project.layout.dir(project.provider { temporaryDir.resolve("work") })
+        workingDirectory.convention(defaultWorkingDirectory)
 
-        preserveWorkingDirectory.convention(workingDirectory.zip(project.layout.buildDirectory) { wd, bd ->
-            !wd.asFile.startsWith(bd.asFile)
+        preserveWorkingDirectory.convention(workingDirectory.zip(defaultWorkingDirectory) { wd, default ->
+            wd.asFile != default.asFile
         })
     }
 

@@ -16,7 +16,6 @@ import org.gradle.api.artifacts.Dependency
 import org.gradle.api.attributes.Usage
 import org.gradle.api.component.SoftwareComponentContainer
 import org.gradle.api.component.SoftwareComponentFactory
-import org.gradle.api.file.Directory
 import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.model.ObjectFactory
@@ -33,22 +32,27 @@ import org.gradle.jvm.toolchain.JavaToolchainService
 import org.gradle.kotlin.dsl.*
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import java.io.File
+import java.nio.file.Files
 import java.util.concurrent.Callable
 import javax.inject.Inject
 import kotlin.collections.emptyList
 
-private fun allGeneratedDirs(root: Directory): Sequence<File> {
+/**
+ * Finds directories with MPS-generated files under [root]. Does not follow symbolic links and does not descend into
+ * [excludedDirs].
+ */
+private fun allGeneratedDirs(root: File, excludedDirs: Set<File>): Sequence<File> {
     val dirsToFind = arrayOf("source_gen", "source_gen.caches", "classes_gen", "test_gen", "test_gen.caches")
     return sequence {
         val stack = mutableListOf<File>()
-        stack.add(root.asFile)
+        stack.add(root)
 
         while (stack.isNotEmpty()) {
             val top = stack.removeAt(stack.size - 1)
             val files = top.listFiles() ?: continue
 
             for (file in files) {
-                if (!file.isDirectory) { continue }
+                if (Files.isSymbolicLink(file.toPath()) || !file.isDirectory || file in excludedDirs) { continue }
 
                 if (file.name in dirsToFind) {
                     yield(file)
@@ -139,12 +143,14 @@ open class MpsPlugin @Inject constructor(
 
             // Extend the clean task to delete directories with MPS-generated files: source_gen, source_gen.caches,
             // classes_gen, test_gen, test_gen.caches. The directories are searched for when the task runs, so that the
-            // search does not make the files of the project inputs of the configuration cache.
+            // search does not make the files of the project inputs of the configuration cache. Directories of
+            // subprojects are skipped, they belong to the subprojects.
             tasks.named(BasePlugin.CLEAN_TASK_NAME, Delete::class) {
-                val projectDirectory = layout.projectDirectory
+                val projectDirectory = layout.projectDirectory.asFile
+                val subprojectDirectories = subprojects.map { it.projectDir }.toSet()
                 val fileSystemOperations = fileSystemOperations
                 doLast {
-                    val generatedDirs = allGeneratedDirs(projectDirectory).toList()
+                    val generatedDirs = allGeneratedDirs(projectDirectory, subprojectDirectories).toList()
                     fileSystemOperations.delete { delete(generatedDirs) }
                 }
             }
@@ -267,6 +273,10 @@ open class MpsPlugin @Inject constructor(
         generateBackendConfiguration: NamedDomainObjectProvider<Configuration>
     ) {
         tasks.withType(RunAnt::class.java).configureEach {
+            // The clean task does not declare the directories it deletes, so Gradle would not otherwise keep it from
+            // running at the same time as the tasks that write to them.
+            mustRunAfter(BasePlugin.CLEAN_TASK_NAME)
+
             javaLauncher.convention(mpsDefaults.javaLauncher)
             pathProperties.put("mps_home", mpsDefaults.mpsHome.asFile)
             pathProperties.put("mps.home", mpsDefaults.mpsHome.asFile)
