@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 2.1.2
 
 ### Fixed
 
@@ -30,8 +30,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Dependency updates
 
-- jbr-toolchain 1.3.0-SNAPSHOT
+- jbr-toolchain 1.3.0
 - mps-platform-cache 1.0.4
+- Gradle 9.9.3. The plugin is built with this Gradle version and may not work with older ones.
+- de.itemis.mps.build-backends:launcher 2.9.2.239.aeb5185
 
 ## 2.1.1
 
