@@ -11,10 +11,10 @@ import org.gradle.process.ExecOperations
 import javax.inject.Inject
 
 /**
- * Creates the `<module>-<version>` release tag on `master` after the release commit made by `prepareRelease`
+ * Creates the `<module>-<version>` release tag on `main` after the release commit made by `prepareRelease`
  * has been merged. Tagging is separate from preparation because pull requests are rebase-merged: the merged
  * commit has a different hash than the one created locally, so the tag can only be created once the commit is
- * on `master`. Pushing the tag (which triggers the publish workflow) is left to the caller.
+ * on `main`. Pushing the tag (which triggers the publish workflow) is left to the caller.
  */
 abstract class TagReleaseTask @Inject constructor(
     private val execOperations: ExecOperations
@@ -47,9 +47,9 @@ abstract class TagReleaseTask @Inject constructor(
             throw GradleException("Tag '$tag' already exists; bump the version in gradle.properties first.")
         }
         val branch = git.currentBranch()
-        if (branch != "master") {
+        if (branch != "main") {
             throw GradleException(
-                "Release tags must be created on 'master' (currently on '$branch') so that they point at the " +
+                "Release tags must be created on 'main' (currently on '$branch') so that they point at the " +
                     "rebase-merged release commit.")
         }
         val changelog = changelogFile.get().asFile

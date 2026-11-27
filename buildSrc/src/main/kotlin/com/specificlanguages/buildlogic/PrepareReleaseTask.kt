@@ -16,9 +16,9 @@ import javax.inject.Inject
 /**
  * Prepares the release of one module: drops the `-SNAPSHOT` suffix from the version in the module's
  * `gradle.properties`, renames the changelog's `Unreleased` section to the release version and commits both
- * files. The commit is meant to reach `master` through a pull request; because pull requests are
+ * files. The commit is meant to reach `main` through a pull request; because pull requests are
  * rebase-merged (giving the commit a new hash), the release tag is created separately by the `tagRelease`
- * task once the commit is on `master`.
+ * task once the commit is on `main`.
  *
  * Before the rename, the changelog's `Dependency updates` subsection is filled in with the changes since the
  * module's last release: new versions of `api`, `implementation` and `runtimeOnly` dependencies (for external
@@ -76,7 +76,7 @@ abstract class PrepareReleaseTask @Inject constructor(
         if (changedFiles.isEmpty()) {
             logger.lifecycle(
                 "The files of '$module' are already in their $version release state; " +
-                    "run tagRelease on master to create the release tag.")
+                    "run tagRelease on main to create the release tag.")
             return
         }
 
@@ -84,7 +84,7 @@ abstract class PrepareReleaseTask @Inject constructor(
 
         logger.lifecycle(
             "Prepared release $version of '$module'. Open a pull request with this commit; " +
-                "after it is merged, run tagRelease on master to create the release tag.")
+                "after it is merged, run tagRelease on main to create the release tag.")
     }
 
     /** Dependency changes between the module's last release and the working tree; empty for a first release. */

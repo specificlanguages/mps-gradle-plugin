@@ -17,8 +17,8 @@ the hook up locally to catch problems before pushing:
 the latter, which is where the message check runs). prek provisions gitlint's environment on first run, so no separate
 gitlint installation is needed.
 
-Pull requests are rebase-merged, so each commit you push lands on `master` as-is — keep every commit message
-conventional, not just the pull request title.
+Pull requests are rebase-merged, so each commit you push lands on `main` as-is — keep every commit message conventional,
+not just the pull request title.
 
 ## Versioning
 
@@ -61,8 +61,8 @@ pushed but no further checks run on it.
 
 ## Releasing
 
-Each module is released individually, in two steps, because `master` is protected and pull requests are rebase-merged
-(the release commit gets a new hash when it lands on `master`, so the tag can only be created after the merge).
+Each module is released individually, in two steps, because `main` is protected and pull requests are rebase-merged (the
+release commit gets a new hash when it lands on `main`, so the tag can only be created after the merge).
 
 1. On a branch, run the module's `prepareRelease` task, e.g.:
 
@@ -83,7 +83,7 @@ Each module is released individually, in two steps, because `master` is protecte
    using separate Gradle invocations so each invocation reads the updated versions. Dependencies do not need to be
    published at this stage.
 
-2. On `master`, updated to the merge, run the module's `tagRelease` task:
+2. On `main`, updated to the merge, run the module's `tagRelease` task:
 
    ```shell
    ./gradlew :jbr-toolchain:tagRelease

@@ -117,7 +117,7 @@ fun relativeToRoot(dir: File) =
 
 tasks.register<TagReleaseTask>("tagRelease") {
     group = "publishing"
-    description = "Creates the release tag on master after the release commit has been merged."
+    description = "Creates the release tag on main after the release commit has been merged."
     moduleName = project.name
     currentVersion = moduleVersionProvider
     changelogFile = layout.projectDirectory.file("CHANGELOG.md")

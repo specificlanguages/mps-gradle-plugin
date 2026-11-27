@@ -3,10 +3,10 @@ name: Checks
 on:
   pull_request:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
-  # Required gate. Pull requests are rebase-merged, so every commit lands on master as-is and must be a
+  # Required gate. Pull requests are rebase-merged, so every commit lands on main as-is and must be a
   # Conventional Commit.
   commit-messages:
     name: Conventional commit messages
@@ -22,7 +22,7 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Lint commit messages
         # Locally, .gitlint ignores WIP titles and fixup!/squash! commits so contributors can use them as
-        # checkpoints during interactive rebase. On pull requests every commit lands on master as-is, so
+        # checkpoints during interactive rebase. On pull requests every commit lands on main as-is, so
         # re-enable both checks here.
         run: |
           gitlint --commits ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} \
