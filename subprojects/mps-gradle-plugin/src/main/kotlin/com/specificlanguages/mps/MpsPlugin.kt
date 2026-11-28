@@ -102,7 +102,7 @@ open class MpsPlugin @Inject constructor(
                 extendsFrom(apiConfiguration.get(), testImplementationConfiguration.get())
             }
 
-            val resolveMpsLibraries by tasks.registering(Sync::class) {
+            val resolveMpsLibraries = tasks.register("resolveMpsLibraries", Sync::class.java) {
                 dependsOn(mpsLibraries)
                 from(mpsLibraries.map { cfg -> cfg.map(project::zipTree) })
 
